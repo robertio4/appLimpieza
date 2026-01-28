@@ -11,6 +11,11 @@ export const DATOS_EMPRESA = {
 };
 
 /**
- * IVA percentage for invoices
+ * IVA percentage for invoices (as decimal, e.g., 0.21 = 21%)
+ */
+export const IVA_RATE = 0.21;
+
+/**
+ * IVA percentage for display (as integer, e.g., 21)
  */
 export const IVA_PERCENTAGE = 21;

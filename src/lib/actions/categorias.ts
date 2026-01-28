@@ -2,15 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser, createErrorResult, createSuccessResult } from "@/lib/action-helpers";
+import type { ActionResult } from "@/lib/types";
 import type {
   CategoriaGasto,
   CategoriaGastoInsert,
   CategoriaGastoUpdate,
 } from "@/types/database";
 
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+export type { ActionResult } from "@/lib/types";
 
 const DEFAULT_CATEGORIES = [
   { nombre: "Material", color: "#3B82F6" },
@@ -24,15 +24,12 @@ export async function getCategorias(): Promise<
   ActionResult<CategoriaGasto[]>
 > {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("categorias_gasto")
       .select("*")
@@ -40,12 +37,12 @@ export async function getCategorias(): Promise<
       .order("nombre");
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: data || [] };
+    return createSuccessResult(data || []);
   } catch {
-    return { success: false, error: "Error al obtener las categorías" };
+    return createErrorResult("Error al obtener las categorías");
   }
 }
 
@@ -53,15 +50,12 @@ export async function createCategoria(
   data: Omit<CategoriaGastoInsert, "user_id">
 ): Promise<ActionResult<CategoriaGasto>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data: categoria, error } = await supabase
       .from("categorias_gasto")
       .insert({ ...data, user_id: user.id })
@@ -69,13 +63,13 @@ export async function createCategoria(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: categoria };
+    return createSuccessResult(categoria);
   } catch {
-    return { success: false, error: "Error al crear la categoría" };
+    return createErrorResult("Error al crear la categoría");
   }
 }
 
@@ -84,15 +78,12 @@ export async function updateCategoria(
   data: CategoriaGastoUpdate
 ): Promise<ActionResult<CategoriaGasto>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data: categoria, error } = await supabase
       .from("categorias_gasto")
       .update(data)
@@ -102,13 +93,13 @@ export async function updateCategoria(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: categoria };
+    return createSuccessResult(categoria);
   } catch {
-    return { success: false, error: "Error al actualizar la categoría" };
+    return createErrorResult("Error al actualizar la categoría");
   }
 }
 
@@ -116,15 +107,12 @@ export async function deleteCategoria(
   id: string
 ): Promise<ActionResult> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { error } = await supabase
       .from("categorias_gasto")
       .delete()
@@ -132,13 +120,13 @@ export async function deleteCategoria(
       .eq("user_id", user.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: undefined };
+    return createSuccessResult(undefined);
   } catch {
-    return { success: false, error: "Error al eliminar la categoría" };
+    return createErrorResult("Error al eliminar la categoría");
   }
 }
 
@@ -146,16 +134,12 @@ export async function initializeDefaultCategorias(): Promise<
   ActionResult<CategoriaGasto[]>
 > {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
-    // Check if user already has categories
+    const supabase = await createClient();
     const { data: existing } = await supabase
       .from("categorias_gasto")
       .select("id")
@@ -163,16 +147,14 @@ export async function initializeDefaultCategorias(): Promise<
       .limit(1);
 
     if (existing && existing.length > 0) {
-      // User already has categories, return them
       const { data } = await supabase
         .from("categorias_gasto")
         .select("*")
         .eq("user_id", user.id)
         .order("nombre");
-      return { success: true, data: data || [] };
+      return createSuccessResult(data || []);
     }
 
-    // Create default categories
     const categoriesToInsert = DEFAULT_CATEGORIES.map((cat) => ({
       ...cat,
       user_id: user.id,
@@ -184,12 +166,12 @@ export async function initializeDefaultCategorias(): Promise<
       .select();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: data || [] };
+    return createSuccessResult(data || []);
   } catch {
-    return { success: false, error: "Error al inicializar las categorías" };
+    return createErrorResult("Error al inicializar las categorías");
   }
 }

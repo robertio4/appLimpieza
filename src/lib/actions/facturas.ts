@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser, createErrorResult, createSuccessResult } from "@/lib/action-helpers";
+import type { ActionResult } from "@/lib/types";
+import { IVA_RATE } from "@/lib/constants";
 import type {
   Factura,
   FacturaUpdate,
@@ -12,21 +15,16 @@ import type {
   Cliente,
 } from "@/types/database";
 
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+export type { ActionResult } from "@/lib/types";
 
 export async function getFacturas(): Promise<ActionResult<FacturaConCliente[]>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("facturas")
       .select(
@@ -39,12 +37,12 @@ export async function getFacturas(): Promise<ActionResult<FacturaConCliente[]>> 
       .order("fecha", { ascending: false });
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: (data as FacturaConCliente[]) || [] };
+    return createSuccessResult((data as FacturaConCliente[]) || []);
   } catch {
-    return { success: false, error: "Error al obtener las facturas" };
+    return createErrorResult("Error al obtener las facturas");
   }
 }
 
@@ -55,15 +53,12 @@ export async function getFacturasByFilters(
   clienteId?: string
 ): Promise<ActionResult<FacturaConCliente[]>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     let query = supabase
       .from("facturas")
       .select(
@@ -91,12 +86,12 @@ export async function getFacturasByFilters(
     const { data, error } = await query;
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: (data as FacturaConCliente[]) || [] };
+    return createSuccessResult((data as FacturaConCliente[]) || []);
   } catch {
-    return { success: false, error: "Error al obtener las facturas" };
+    return createErrorResult("Error al obtener las facturas");
   }
 }
 
@@ -104,15 +99,12 @@ export async function getFacturaCompleta(
   id: string
 ): Promise<ActionResult<FacturaCompleta>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("facturas")
       .select(
@@ -127,38 +119,34 @@ export async function getFacturaCompleta(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: data as FacturaCompleta };
+    return createSuccessResult(data as FacturaCompleta);
   } catch {
-    return { success: false, error: "Error al obtener la factura" };
+    return createErrorResult("Error al obtener la factura");
   }
 }
 
 export async function getNextNumeroFactura(): Promise<ActionResult<string>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
-    // Call the database function to generate the next invoice number
+    const supabase = await createClient();
     const { data, error } = await supabase.rpc("generate_invoice_number", {
       p_user_id: user.id,
     });
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: data as string };
+    return createSuccessResult(data as string);
   } catch {
-    return { success: false, error: "Error al generar el número de factura" };
+    return createErrorResult("Error al generar el número de factura");
   }
 }
 
@@ -178,30 +166,24 @@ export async function createFactura(
   data: CreateFacturaData
 ): Promise<ActionResult<Factura>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
-    // Generate invoice number
     const numeroResult = await getNextNumeroFactura();
     if (!numeroResult.success) {
-      return { success: false, error: numeroResult.error };
+      return createErrorResult(numeroResult.error);
     }
 
-    // Calculate totals
     const subtotal = data.lineas.reduce(
       (sum, linea) => sum + linea.cantidad * linea.precio_unitario,
       0
     );
-    const iva = subtotal * 0.21;
+    const iva = subtotal * IVA_RATE;
     const total = subtotal + iva;
 
-    // Insert factura
+    const supabase = await createClient();
     const { data: factura, error: facturaError } = await supabase
       .from("facturas")
       .insert({
@@ -220,10 +202,9 @@ export async function createFactura(
       .single();
 
     if (facturaError) {
-      return { success: false, error: facturaError.message };
+      return createErrorResult(facturaError.message);
     }
 
-    // Insert lineas
     const lineas: LineaFacturaInsert[] = data.lineas.map((linea) => ({
       factura_id: factura.id,
       concepto: linea.concepto,
@@ -237,15 +218,14 @@ export async function createFactura(
       .insert(lineas);
 
     if (lineasError) {
-      // Rollback: delete the factura if lineas failed
       await supabase.from("facturas").delete().eq("id", factura.id);
-      return { success: false, error: lineasError.message };
+      return createErrorResult(lineasError.message);
     }
 
     revalidatePath("/facturas");
-    return { success: true, data: factura };
+    return createSuccessResult(factura);
   } catch {
-    return { success: false, error: "Error al crear la factura" };
+    return createErrorResult("Error al crear la factura");
   }
 }
 
@@ -267,16 +247,12 @@ export async function updateFactura(
   data: UpdateFacturaData
 ): Promise<ActionResult<Factura>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
-    // Prepare factura update
+    const supabase = await createClient();
     const facturaUpdate: FacturaUpdate = {};
     if (data.cliente_id) facturaUpdate.cliente_id = data.cliente_id;
     if (data.fecha) facturaUpdate.fecha = data.fecha;
@@ -284,20 +260,18 @@ export async function updateFactura(
       facturaUpdate.fecha_vencimiento = data.fecha_vencimiento || null;
     if (data.notas !== undefined) facturaUpdate.notas = data.notas || null;
 
-    // If lineas are provided, recalculate totals
     if (data.lineas) {
       const subtotal = data.lineas.reduce(
         (sum, linea) => sum + linea.cantidad * linea.precio_unitario,
         0
       );
-      const iva = subtotal * 0.21;
+      const iva = subtotal * IVA_RATE;
       const total = subtotal + iva;
 
       facturaUpdate.subtotal = subtotal;
       facturaUpdate.iva = iva;
       facturaUpdate.total = total;
 
-      // Delete existing lineas and insert new ones
       await supabase.from("lineas_factura").delete().eq("factura_id", id);
 
       const lineas: LineaFacturaInsert[] = data.lineas.map((linea) => ({
@@ -313,11 +287,10 @@ export async function updateFactura(
         .insert(lineas);
 
       if (lineasError) {
-        return { success: false, error: lineasError.message };
+        return createErrorResult(lineasError.message);
       }
     }
 
-    // Update factura
     const { data: factura, error } = await supabase
       .from("facturas")
       .update(facturaUpdate)
@@ -327,14 +300,14 @@ export async function updateFactura(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/facturas");
     revalidatePath(`/facturas/${id}`);
-    return { success: true, data: factura };
+    return createSuccessResult(factura);
   } catch {
-    return { success: false, error: "Error al actualizar la factura" };
+    return createErrorResult("Error al actualizar la factura");
   }
 }
 
@@ -343,15 +316,12 @@ export async function updateEstadoFactura(
   estado: EstadoFactura
 ): Promise<ActionResult<Factura>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data: factura, error } = await supabase
       .from("facturas")
       .update({ estado })
@@ -361,29 +331,25 @@ export async function updateEstadoFactura(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/facturas");
     revalidatePath(`/facturas/${id}`);
-    return { success: true, data: factura };
+    return createSuccessResult(factura);
   } catch {
-    return { success: false, error: "Error al actualizar el estado" };
+    return createErrorResult("Error al actualizar el estado");
   }
 }
 
 export async function deleteFactura(id: string): Promise<ActionResult> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
-    // Delete lineas first (cascade should handle this, but being explicit)
+    const supabase = await createClient();
     await supabase.from("lineas_factura").delete().eq("factura_id", id);
 
     const { error } = await supabase
@@ -393,27 +359,24 @@ export async function deleteFactura(id: string): Promise<ActionResult> {
       .eq("user_id", user.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/facturas");
-    return { success: true, data: undefined };
+    return createSuccessResult(undefined);
   } catch {
-    return { success: false, error: "Error al eliminar la factura" };
+    return createErrorResult("Error al eliminar la factura");
   }
 }
 
 export async function getClientes(): Promise<ActionResult<Cliente[]>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("clientes")
       .select("*")
@@ -421,11 +384,11 @@ export async function getClientes(): Promise<ActionResult<Cliente[]>> {
       .order("nombre", { ascending: true });
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: data || [] };
+    return createSuccessResult(data || []);
   } catch {
-    return { success: false, error: "Error al obtener los clientes" };
+    return createErrorResult("Error al obtener los clientes");
   }
 }

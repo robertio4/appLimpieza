@@ -20,6 +20,7 @@ import {
   updateEstadoFactura,
   getClientes,
 } from "@/lib/actions/facturas";
+import { formatCurrency, formatDate, estadoBadgeStyles, estadoLabels } from "@/lib/utils";
 import { DATOS_EMPRESA, IVA_PERCENTAGE } from "@/lib/constants";
 import type { FacturaCompleta, Cliente, EstadoFactura } from "@/types/database";
 import {
@@ -43,33 +44,6 @@ interface LineaForm {
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-const estadoBadgeStyles: Record<EstadoFactura, string> = {
-  borrador: "bg-neutral-100 text-neutral-700",
-  enviada: "bg-blue-100 text-blue-700",
-  pagada: "bg-green-100 text-green-700",
-};
-
-const estadoLabels: Record<EstadoFactura, string> = {
-  borrador: "Borrador",
-  enviada: "Enviada",
-  pagada: "Pagada",
-};
 
 export default function FacturaDetailPage() {
   const params = useParams();

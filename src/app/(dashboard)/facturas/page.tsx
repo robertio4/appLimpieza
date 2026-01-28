@@ -29,6 +29,7 @@ import {
 } from "@/lib/actions/facturas";
 import { pdf } from "@react-pdf/renderer";
 import { FacturaPDF } from "@/components/facturas/FacturaPDF";
+import { formatCurrency, formatDate, estadoBadgeStyles, estadoLabels } from "@/lib/utils";
 import { DATOS_EMPRESA } from "@/lib/constants";
 import type {
   FacturaConCliente,
@@ -47,33 +48,6 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react";
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-const estadoBadgeStyles: Record<EstadoFactura, string> = {
-  borrador: "bg-neutral-100 text-neutral-700",
-  enviada: "bg-blue-100 text-blue-700",
-  pagada: "bg-green-100 text-green-700",
-};
-
-const estadoLabels: Record<EstadoFactura, string> = {
-  borrador: "Borrador",
-  enviada: "Enviada",
-  pagada: "Pagada",
-};
 
 export default function FacturasPage() {
   const router = useRouter();

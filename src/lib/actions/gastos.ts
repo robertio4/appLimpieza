@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser, createErrorResult, createSuccessResult } from "@/lib/action-helpers";
+import type { ActionResult } from "@/lib/types";
 import type {
   Gasto,
   GastoInsert,
@@ -9,21 +11,16 @@ import type {
   GastoConCategoria,
 } from "@/types/database";
 
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+export type { ActionResult } from "@/lib/types";
 
 export async function getGastos(): Promise<ActionResult<GastoConCategoria[]>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("gastos")
       .select(
@@ -36,12 +33,12 @@ export async function getGastos(): Promise<ActionResult<GastoConCategoria[]>> {
       .order("fecha", { ascending: false });
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: (data as GastoConCategoria[]) || [] };
+    return createSuccessResult((data as GastoConCategoria[]) || []);
   } catch {
-    return { success: false, error: "Error al obtener los gastos" };
+    return createErrorResult("Error al obtener los gastos");
   }
 }
 
@@ -51,15 +48,12 @@ export async function getGastosByDateRange(
   categoriaId?: string
 ): Promise<ActionResult<GastoConCategoria[]>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     let query = supabase
       .from("gastos")
       .select(
@@ -80,12 +74,12 @@ export async function getGastosByDateRange(
     const { data, error } = await query;
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: (data as GastoConCategoria[]) || [] };
+    return createSuccessResult((data as GastoConCategoria[]) || []);
   } catch {
-    return { success: false, error: "Error al obtener los gastos" };
+    return createErrorResult("Error al obtener los gastos");
   }
 }
 
@@ -93,15 +87,12 @@ export async function getGasto(
   id: string
 ): Promise<ActionResult<GastoConCategoria>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("gastos")
       .select(
@@ -115,12 +106,12 @@ export async function getGasto(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
-    return { success: true, data: data as GastoConCategoria };
+    return createSuccessResult(data as GastoConCategoria);
   } catch {
-    return { success: false, error: "Error al obtener el gasto" };
+    return createErrorResult("Error al obtener el gasto");
   }
 }
 
@@ -128,15 +119,12 @@ export async function createGasto(
   data: Omit<GastoInsert, "user_id">
 ): Promise<ActionResult<Gasto>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data: gasto, error } = await supabase
       .from("gastos")
       .insert({ ...data, user_id: user.id })
@@ -144,13 +132,13 @@ export async function createGasto(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: gasto };
+    return createSuccessResult(gasto);
   } catch {
-    return { success: false, error: "Error al crear el gasto" };
+    return createErrorResult("Error al crear el gasto");
   }
 }
 
@@ -159,15 +147,12 @@ export async function updateGasto(
   data: GastoUpdate
 ): Promise<ActionResult<Gasto>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { data: gasto, error } = await supabase
       .from("gastos")
       .update(data)
@@ -177,27 +162,24 @@ export async function updateGasto(
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: gasto };
+    return createSuccessResult(gasto);
   } catch {
-    return { success: false, error: "Error al actualizar el gasto" };
+    return createErrorResult("Error al actualizar el gasto");
   }
 }
 
 export async function deleteGasto(id: string): Promise<ActionResult> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const { error } = await supabase
       .from("gastos")
       .delete()
@@ -205,12 +187,12 @@ export async function deleteGasto(id: string): Promise<ActionResult> {
       .eq("user_id", user.id);
 
     if (error) {
-      return { success: false, error: error.message };
+      return createErrorResult(error.message);
     }
 
     revalidatePath("/gastos");
-    return { success: true, data: undefined };
+    return createSuccessResult(undefined);
   } catch {
-    return { success: false, error: "Error al eliminar el gasto" };
+    return createErrorResult("Error al eliminar el gasto");
   }
 }

@@ -1,5 +1,20 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Project Overview
+
+This is a business management application designed for cleaning companies, providing tools for invoice management, expense tracking, and financial dashboard reporting.
+
+### Recent Code Improvements
+
+The codebase has recently undergone significant refactoring and cleanup to improve maintainability and reduce code duplication. See [CLEANUP.md](./CLEANUP.md) for detailed documentation of all improvements made.
+
+**Key Improvements:**
+- ✅ Eliminated ~270 lines of duplicate code
+- ✅ Created reusable utilities and helpers
+- ✅ Standardized error handling across all server actions
+- ✅ Centralized formatting functions and constants
+- ✅ Improved type safety and consistency
+
 ## Getting Started
 
 First, run the development server:

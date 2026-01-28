@@ -4,6 +4,7 @@ import { useState } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { FacturaPDF } from "./FacturaPDF";
+import { formatCurrency } from "@/lib/utils";
 import type { FacturaCompleta } from "@/types/database";
 import { DATOS_EMPRESA } from "@/lib/constants";
 import { Download, Mail, Loader2 } from "lucide-react";
@@ -64,10 +65,7 @@ export function FacturaActions({ factura, onSuccess }: FacturaActionsProps) {
       const body = encodeURIComponent(
         `Estimado/a ${factura.cliente.nombre},\n\n` +
           `Adjunto le enviamos la factura ${factura.numero} correspondiente a nuestros servicios.\n\n` +
-          `Importe total: ${new Intl.NumberFormat("es-ES", {
-            style: "currency",
-            currency: "EUR",
-          }).format(factura.total)}\n\n` +
+          `Importe total: ${formatCurrency(factura.total)}\n\n` +
           `Por favor, realice el pago mediante transferencia a:\n` +
           `${DATOS_EMPRESA.iban}\n\n` +
           `Atentamente,\n${DATOS_EMPRESA.nombre}`
