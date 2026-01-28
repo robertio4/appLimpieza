@@ -11,10 +11,8 @@ import type {
   EstadoFactura,
   Cliente,
 } from "@/types/database";
-
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+import type { ActionResult } from "@/lib/types";
+import { IVA_PERCENTAGE } from "@/lib/constants";
 
 export async function getFacturas(): Promise<ActionResult<FacturaConCliente[]>> {
   try {
@@ -198,7 +196,7 @@ export async function createFactura(
       (sum, linea) => sum + linea.cantidad * linea.precio_unitario,
       0
     );
-    const iva = subtotal * 0.21;
+    const iva = subtotal * (IVA_PERCENTAGE / 100);
     const total = subtotal + iva;
 
     // Insert factura
@@ -290,7 +288,7 @@ export async function updateFactura(
         (sum, linea) => sum + linea.cantidad * linea.precio_unitario,
         0
       );
-      const iva = subtotal * 0.21;
+      const iva = subtotal * (IVA_PERCENTAGE / 100);
       const total = subtotal + iva;
 
       facturaUpdate.subtotal = subtotal;

@@ -2,10 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { FacturaConCliente, GastoConCategoria } from "@/types/database";
-
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+import type { ActionResult } from "@/lib/types";
 
 export interface DashboardStats {
   totalFacturado: number;

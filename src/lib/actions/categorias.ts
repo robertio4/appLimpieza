@@ -7,10 +7,7 @@ import type {
   CategoriaGastoInsert,
   CategoriaGastoUpdate,
 } from "@/types/database";
-
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+import type { ActionResult } from "@/lib/types";
 
 const DEFAULT_CATEGORIES = [
   { nombre: "Material", color: "#3B82F6" },
