@@ -134,7 +134,7 @@ BEGIN
     
     -- Create a deterministic lock key from user_id and year
     -- This ensures each user+year combination has its own lock
-    lock_key := ('x' || substring(md5(p_user_id::TEXT || current_year) from 1 for 15))::bit(60)::BIGINT;
+    lock_key := hashtext(p_user_id::TEXT || '-' || current_year);
     
     -- Acquire advisory lock to prevent race conditions
     -- This lock is automatically released at the end of the transaction
