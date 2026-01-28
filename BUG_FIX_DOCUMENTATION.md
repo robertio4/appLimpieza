@@ -55,7 +55,13 @@ BEGIN
     PERFORM pg_advisory_xact_lock(lock_key);
 
     -- Get the next invoice number for this user in the current year
-    SELECT COALESCE(MAX(...)) + 1
+    SELECT COALESCE(MAX(
+        CASE
+            WHEN numero ~ ('^' || current_year || '-[0-9]+$')
+            THEN CAST(SPLIT_PART(numero, '-', 2) AS INTEGER)
+            ELSE 0
+        END
+    ), 0) + 1
     INTO next_number
     FROM facturas
     WHERE user_id = p_user_id
