@@ -113,10 +113,13 @@ This refactoring focused on eliminating code duplication, creating reusable util
 ### Page Components
 - `src/app/(dashboard)/gastos/page.tsx` - Uses centralized formatting
 - `src/app/(dashboard)/facturas/page.tsx` - Uses centralized formatting and constants
+- `src/app/(dashboard)/facturas/[id]/page.tsx` - Uses centralized formatting and constants
+- `src/app/(dashboard)/facturas/nueva/page.tsx` - Uses centralized formatting
 - `src/app/(dashboard)/dashboard/page.tsx` - Uses centralized formatting and constants
 
 ### Feature Components
 - `src/components/facturas/FacturaActions.tsx` - Uses centralized formatting
+- `src/components/dashboard/monthly-chart.tsx` - Uses centralized formatting
 
 ## Benefits
 

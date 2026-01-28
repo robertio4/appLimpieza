@@ -18,6 +18,7 @@ import {
   getClientes,
   getNextNumeroFactura,
 } from "@/lib/actions/facturas";
+import { formatCurrency } from "@/lib/utils";
 import { IVA_PERCENTAGE } from "@/lib/constants";
 import type { Cliente } from "@/types/database";
 import { Plus, Trash2, ArrowLeft, Loader2 } from "lucide-react";
@@ -31,13 +32,6 @@ interface LineaForm {
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(amount);
 }
 
 export default function NuevaFacturaPage() {

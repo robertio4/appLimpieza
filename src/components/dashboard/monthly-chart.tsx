@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { formatCurrency } from "@/lib/utils";
 import type { MonthlyTotal } from "@/lib/actions/dashboard";
 
 interface MonthlyChartProps {
@@ -17,7 +18,7 @@ interface MonthlyChartProps {
 }
 
 export function MonthlyChart({ data }: MonthlyChartProps) {
-  const formatCurrency = (value: number) => {
+  const formatCurrencyCompact = (value: number) => {
     return new Intl.NumberFormat("es-ES", {
       style: "currency",
       currency: "EUR",
@@ -41,7 +42,7 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
         <YAxis
           tick={{ fill: "#737373", fontSize: 12 }}
           axisLine={{ stroke: "#e5e5e5" }}
-          tickFormatter={formatCurrency}
+          tickFormatter={formatCurrencyCompact}
         />
         <Tooltip
           formatter={(value) => formatCurrency(Number(value))}
