@@ -7,7 +7,7 @@
 **Tech Stack:**
 - **Framework:** Next.js 14.2.35 (App Router)
 - **Language:** TypeScript 5
-- **Runtime:** Node.js v20.20.0, npm 10.8.2
+- **Runtime:** Node.js 20.x, npm 10.x
 - **UI:** React 18, Tailwind CSS 3.4.1, shadcn/ui components
 - **Backend:** Supabase (authentication + PostgreSQL database)
 - **Additional:** React Hook Form, Zod validation, Recharts, @react-pdf/renderer
@@ -172,7 +172,7 @@ All tables have Row Level Security (RLS) enabled with `user_id = auth.uid()` pol
 - **Fix:** Check middleware.ts is properly configured and Supabase session is being refreshed
 
 **Issue:** npm install shows vulnerabilities
-- **Expected:** 4 vulnerabilities (1 moderate, 3 high) are known and acceptable. Don't run `npm audit fix --force` as it may break dependencies.
+- **Expected:** Some known vulnerabilities may be reported that are acceptable for this project. Don't run `npm audit fix --force` as it may break dependencies.
 
 ## Development Workflow
 
