@@ -1,11 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser, createErrorResult, createSuccessResult } from "@/lib/action-helpers";
+import type { ActionResult } from "@/lib/types";
 import type { FacturaConCliente, GastoConCategoria } from "@/types/database";
 
-export type ActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+export type { ActionResult } from "@/lib/types";
 
 export interface DashboardStats {
   totalFacturado: number;
@@ -23,21 +23,16 @@ export async function getDashboardStats(
   year: number
 ): Promise<ActionResult<DashboardStats>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
-    // Calculate date range for the month
+    const supabase = await createClient();
     const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month, 0).toISOString().split("T")[0];
     const today = new Date().toISOString().split("T")[0];
 
-    // Get paid invoices (Total facturado) - sum of paid invoices in the month
     const { data: paidInvoices, error: paidError } = await supabase
       .from("facturas")
       .select("total")
@@ -47,12 +42,11 @@ export async function getDashboardStats(
       .lte("fecha", endDate);
 
     if (paidError) {
-      return { success: false, error: paidError.message };
+      return createErrorResult(paidError.message);
     }
 
     const totalFacturado = paidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
-    // Get unpaid sent invoices (Pendiente de cobro) - sum of sent (not paid) invoices
     const { data: unpaidInvoices, error: unpaidError } = await supabase
       .from("facturas")
       .select("total")
@@ -62,12 +56,11 @@ export async function getDashboardStats(
       .lte("fecha", endDate);
 
     if (unpaidError) {
-      return { success: false, error: unpaidError.message };
+      return createErrorResult(unpaidError.message);
     }
 
     const pendienteCobro = unpaidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
-    // Get total expenses for the month
     const { data: gastos, error: gastosError } = await supabase
       .from("gastos")
       .select("importe")
@@ -76,15 +69,12 @@ export async function getDashboardStats(
       .lte("fecha", endDate);
 
     if (gastosError) {
-      return { success: false, error: gastosError.message };
+      return createErrorResult(gastosError.message);
     }
 
     const totalGastos = gastos?.reduce((sum, g) => sum + g.importe, 0) || 0;
-
-    // Calculate balance (facturado - gastos)
     const balance = totalFacturado - totalGastos;
 
-    // Get overdue invoices (enviada and past due date)
     const { data: overdueInvoices, error: overdueError } = await supabase
       .from("facturas")
       .select(`*, cliente:clientes(*)`)
@@ -94,10 +84,9 @@ export async function getDashboardStats(
       .order("fecha_vencimiento", { ascending: true });
 
     if (overdueError) {
-      return { success: false, error: overdueError.message };
+      return createErrorResult(overdueError.message);
     }
 
-    // Get draft invoices count
     const { count: draftCount, error: draftError } = await supabase
       .from("facturas")
       .select("*", { count: "exact", head: true })
@@ -105,10 +94,9 @@ export async function getDashboardStats(
       .eq("estado", "borrador");
 
     if (draftError) {
-      return { success: false, error: draftError.message };
+      return createErrorResult(draftError.message);
     }
 
-    // Get last 5 invoices
     const { data: lastInvoices, error: lastInvoicesError } = await supabase
       .from("facturas")
       .select(`*, cliente:clientes(*)`)
@@ -117,10 +105,9 @@ export async function getDashboardStats(
       .limit(5);
 
     if (lastInvoicesError) {
-      return { success: false, error: lastInvoicesError.message };
+      return createErrorResult(lastInvoicesError.message);
     }
 
-    // Get last 5 expenses
     const { data: lastExpenses, error: lastExpensesError } = await supabase
       .from("gastos")
       .select(`*, categoria:categorias_gasto(*)`)
@@ -129,24 +116,21 @@ export async function getDashboardStats(
       .limit(5);
 
     if (lastExpensesError) {
-      return { success: false, error: lastExpensesError.message };
+      return createErrorResult(lastExpensesError.message);
     }
 
-    return {
-      success: true,
-      data: {
-        totalFacturado,
-        pendienteCobro,
-        totalGastos,
-        balance,
-        facturasVencidas: (overdueInvoices as FacturaConCliente[]) || [],
-        facturasBorrador: draftCount || 0,
-        ultimasFacturas: (lastInvoices as FacturaConCliente[]) || [],
-        ultimosGastos: (lastExpenses as GastoConCategoria[]) || [],
-      },
-    };
+    return createSuccessResult({
+      totalFacturado,
+      pendienteCobro,
+      totalGastos,
+      balance,
+      facturasVencidas: (overdueInvoices as FacturaConCliente[]) || [],
+      facturasBorrador: draftCount || 0,
+      ultimasFacturas: (lastInvoices as FacturaConCliente[]) || [],
+      ultimosGastos: (lastExpenses as GastoConCategoria[]) || [],
+    });
   } catch {
-    return { success: false, error: "Error al obtener las estadísticas" };
+    return createErrorResult("Error al obtener las estadísticas");
   }
 }
 
@@ -162,15 +146,12 @@ export async function getMonthlyTotals(
   months: number = 6
 ): Promise<ActionResult<MonthlyTotal[]>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
-      return { success: false, error: "No autenticado" };
+      return createErrorResult(authError);
     }
 
+    const supabase = await createClient();
     const results: MonthlyTotal[] = [];
     const now = new Date();
     const monthNames = [
@@ -186,7 +167,6 @@ export async function getMonthlyTotals(
       const startDate = new Date(year, month, 1).toISOString().split("T")[0];
       const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
 
-      // Get paid invoices for this month
       const { data: invoices } = await supabase
         .from("facturas")
         .select("total")
@@ -197,7 +177,6 @@ export async function getMonthlyTotals(
 
       const ingresos = invoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
-      // Get expenses for this month
       const { data: gastos } = await supabase
         .from("gastos")
         .select("importe")
@@ -216,8 +195,8 @@ export async function getMonthlyTotals(
       });
     }
 
-    return { success: true, data: results };
+    return createSuccessResult(results);
   } catch {
-    return { success: false, error: "Error al obtener los totales mensuales" };
+    return createErrorResult("Error al obtener los totales mensuales");
   }
 }

@@ -22,23 +22,9 @@ import {
   getCategorias,
   initializeDefaultCategorias,
 } from "@/lib/actions/categorias";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CategoriaGasto, GastoConCategoria } from "@/types/database";
 import { Plus, Settings, Pencil, Trash2, Filter, X } from "lucide-react";
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
 
 export default function GastosPage() {
   const [gastos, setGastos] = useState<GastoConCategoria[]>([]);
