@@ -1,5 +1,13 @@
 # Code Cleanup Documentation - src/lib Utilities
 
+## Summary
+This cleanup focused on the `src/lib` directory, eliminating code duplication and replacing magic numbers with named constants. The changes improve maintainability without altering functionality.
+
+**Key Improvements:**
+- ✅ Consolidated 4 duplicate `ActionResult` type definitions into a single shared type
+- ✅ Replaced magic numbers (0.21) with the `IVA_PERCENTAGE` constant
+- ✅ Improved code maintainability and consistency across all action files
+
 ## Overview
 This document details the cleanup and refactoring performed on the utility files in the `src/lib` directory to improve code maintainability, reduce duplication, and enforce consistency.
 
