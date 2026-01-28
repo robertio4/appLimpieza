@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
-const protectedRoutes = ["/dashboard", "/clientes", "/facturas", "/gastos"];
+// Rutas públicas que NO requieren autenticación
 const publicRoutes = ["/login", "/register"];
 
 export async function updateSession(request: NextRequest) {
@@ -20,17 +20,17 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
+            request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
@@ -39,22 +39,27 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
 
-  // Check if the current route is protected
-  const isProtectedRoute = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
-
-  // Check if the current route is public (auth pages)
+  // Check if the current route is public (login/register)
   const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 
-  // Redirect unauthenticated users trying to access protected routes
-  if (isProtectedRoute && !user) {
+  console.log(
+    `[MIDDLEWARE] Path: ${pathname}`,
+    `| User: ${user?.email || "null"}`,
+    `| User ID: ${user?.id || "null"}`,
+    `| Error: ${error?.message || "none"}`,
+    `| Public: ${isPublicRoute}`,
+  );
+
+  // Redirect unauthenticated users to login (except if already on public routes)
+  if (!user && !isPublicRoute) {
+    console.log(`Redirecting to /login from ${pathname} (no user)`);
     const redirectUrl = new URL("/login", request.url);
     return NextResponse.redirect(redirectUrl);
   }
