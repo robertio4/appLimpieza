@@ -71,7 +71,7 @@ $$ LANGUAGE plpgsql;
 
 ### Key Changes
 1. **Advisory Lock**: Uses `pg_advisory_xact_lock()` to ensure only one transaction can generate invoice numbers for a given user+year combination at a time
-2. **Deterministic Lock Key**: Creates a unique lock key from user_id and year using MD5 hashing
+2. **Deterministic Lock Key**: Creates a unique lock key from user_id and year using PostgreSQL's `hashtext()` function
 3. **Automatic Release**: The lock is automatically released when the transaction completes (commit or rollback)
 
 ### How It Works
