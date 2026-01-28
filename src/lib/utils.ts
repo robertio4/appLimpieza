@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { EstadoFactura } from "@/types/database";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -25,3 +26,21 @@ export function formatDate(dateString: string): string {
     year: "numeric",
   });
 }
+
+/**
+ * Invoice status badge styles
+ */
+export const estadoBadgeStyles: Record<EstadoFactura, string> = {
+  borrador: "bg-neutral-100 text-neutral-700",
+  enviada: "bg-blue-100 text-blue-700",
+  pagada: "bg-green-100 text-green-700",
+};
+
+/**
+ * Invoice status labels in Spanish
+ */
+export const estadoLabels: Record<EstadoFactura, string> = {
+  borrador: "Borrador",
+  enviada: "Enviada",
+  pagada: "Pagada",
+};

@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { getDashboardStats, getMonthlyTotals } from "@/lib/actions/dashboard";
 import { MonthlyChart } from "@/components/dashboard/monthly-chart";
+import { formatCurrency, formatDate, estadoBadgeStyles, estadoLabels } from "@/lib/utils";
+import type { EstadoFactura } from "@/types/database";
 import {
   AlertTriangle,
   FileText,
@@ -19,39 +21,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "EUR",
-  }).format(value);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function getStatusBadge(estado: string) {
-  const styles: Record<string, string> = {
-    borrador: "bg-neutral-100 text-neutral-700",
-    enviada: "bg-blue-100 text-blue-700",
-    pagada: "bg-green-100 text-green-700",
-  };
-
-  const labels: Record<string, string> = {
-    borrador: "Borrador",
-    enviada: "Enviada",
-    pagada: "Pagada",
-  };
-
+function getStatusBadge(estado: EstadoFactura) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[estado] || styles.borrador}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${estadoBadgeStyles[estado]}`}
     >
-      {labels[estado] || estado}
+      {estadoLabels[estado]}
     </span>
   );
 }
