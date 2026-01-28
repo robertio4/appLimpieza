@@ -128,8 +128,17 @@ DECLARE
     current_year TEXT;
     next_number INTEGER;
     invoice_number TEXT;
+    lock_key BIGINT;
 BEGIN
     current_year := EXTRACT(YEAR FROM CURRENT_DATE)::TEXT;
+    
+    -- Create a deterministic lock key from user_id and year
+    -- This ensures each user+year combination has its own lock
+    lock_key := ('x' || substring(md5(p_user_id::TEXT || current_year) from 1 for 15))::bit(60)::BIGINT;
+    
+    -- Acquire advisory lock to prevent race conditions
+    -- This lock is automatically released at the end of the transaction
+    PERFORM pg_advisory_xact_lock(lock_key);
 
     -- Get the next invoice number for this user in the current year
     SELECT COALESCE(MAX(
