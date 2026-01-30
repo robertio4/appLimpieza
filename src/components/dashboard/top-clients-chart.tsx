@@ -47,7 +47,7 @@ export function TopClientsChart({ data }: TopClientsChartProps) {
         <XAxis type="number" tickFormatter={(value) => formatCurrency(value)} />
         <YAxis dataKey="nombre" type="category" width={150} />
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value) => formatCurrency(Number(value))}
           contentStyle={{
             backgroundColor: "white",
             border: "1px solid #e5e5e5",

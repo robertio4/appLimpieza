@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CalendarView } from "@/components/calendario/calendar-view";
@@ -21,7 +21,7 @@ import {
 import { Plus, RefreshCw, AlertCircle } from "lucide-react";
 import type { TrabajoConCliente, Cliente } from "@/types/database";
 
-export default function CalendarioPage() {
+function CalendarioContent() {
   const searchParams = useSearchParams();
 
   // State
@@ -371,5 +371,13 @@ export default function CalendarioPage() {
         onSuccess={handleSuccess}
       />
     </div>
+  );
+}
+
+export default function CalendarioPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <CalendarioContent />
+    </Suspense>
   );
 }

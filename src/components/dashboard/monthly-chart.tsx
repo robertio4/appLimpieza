@@ -28,10 +28,21 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipPayload {
+    dataKey: string;
+    value: number;
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+    label?: string;
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      const ingresos = payload.find((p: any) => p.dataKey === "ingresos");
-      const gastos = payload.find((p: any) => p.dataKey === "gastos");
+      const ingresos = payload.find((p) => p.dataKey === "ingresos");
+      const gastos = payload.find((p) => p.dataKey === "gastos");
       const balance = (ingresos?.value || 0) - (gastos?.value || 0);
 
       return (

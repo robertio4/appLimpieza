@@ -165,7 +165,7 @@ export function TrabajoForm({
 
       onSuccess();
       onOpenChange(false);
-    } catch (err) {
+    } catch {
       setError("Error inesperado al guardar el trabajo");
       setIsLoading(false);
     }

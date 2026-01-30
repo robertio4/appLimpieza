@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { getGoogleCalendarClient } from "@/lib/google-calendar";
 
 /**
  * Webhook endpoint for Google Calendar notifications
@@ -61,7 +59,7 @@ export async function POST(request: NextRequest) {
 /**
  * Handle GET requests (for webhook verification)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     success: true,
     message: "Google Calendar webhook endpoint",

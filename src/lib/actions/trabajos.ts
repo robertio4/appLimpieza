@@ -53,7 +53,10 @@ export async function getTrabajos(): Promise<
 /**
  * Gets a single trabajo by ID with all related data
  */
-export async function getTrabajo(id: string): Promise<ActionResult<any>> {
+export async function getTrabajo(
+  id: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<ActionResult<any>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {

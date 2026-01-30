@@ -26,7 +26,8 @@ export function ExpenseCategoryChart({ data }: ExpenseCategoryChartProps) {
     color: item.color,
   }));
 
-  const renderLabel = (entry: { percent: number }) => {
+  const renderLabel = (entry: { percent?: number }) => {
+    if (!entry.percent) return "";
     return `${(entry.percent * 100).toFixed(0)}%`;
   };
 
@@ -48,7 +49,7 @@ export function ExpenseCategoryChart({ data }: ExpenseCategoryChartProps) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value) => formatCurrency(Number(value))}
           contentStyle={{
             backgroundColor: "white",
             border: "1px solid #e5e5e5",
@@ -56,9 +57,9 @@ export function ExpenseCategoryChart({ data }: ExpenseCategoryChartProps) {
           }}
         />
         <Legend
-          formatter={(value, entry: { payload?: { value: number } }) => {
+          formatter={(value, entry) => {
             const item = entry.payload;
-            return `${value}: ${item ? formatCurrency(item.value) : ""}`;
+            return `${value}: ${item?.value ? formatCurrency(Number(item.value)) : ""}`;
           }}
           wrapperStyle={{ fontSize: "14px" }}
         />

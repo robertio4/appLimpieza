@@ -116,7 +116,14 @@ function getColorIdForTipoServicio(
  * Used for syncing changes made in Google Calendar back to the app
  */
 export function googleEventToTrabajoUpdate(
-  event: any
+  event: { 
+    summary?: string; 
+    start?: { dateTime?: string; date?: string }; 
+    end?: { dateTime?: string; date?: string }; 
+    description?: string; 
+    location?: string; 
+    extendedProperties?: { private?: Record<string, string> } 
+  }
 ): Partial<Trabajo> | null {
   // Extract our custom properties
   const privateProps = event.extendedProperties?.private;
