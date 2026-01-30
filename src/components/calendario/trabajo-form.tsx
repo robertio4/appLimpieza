@@ -22,7 +22,12 @@ import {
 } from "@/components/ui/select";
 import { createTrabajo, updateTrabajo } from "@/lib/actions/trabajos";
 import { TIPOS_SERVICIO, ESTADOS_TRABAJO } from "@/lib/constants";
-import type { Trabajo, Cliente, TipoServicio, EstadoTrabajo } from "@/types/database";
+import type {
+  Trabajo,
+  Cliente,
+  TipoServicio,
+  EstadoTrabajo,
+} from "@/types/database";
 
 interface TrabajoFormProps {
   open: boolean;
@@ -51,10 +56,10 @@ export function TrabajoForm({
   const [titulo, setTitulo] = useState(trabajo?.titulo || "");
   const [descripcion, setDescripcion] = useState(trabajo?.descripcion || "");
   const [tipoServicio, setTipoServicio] = useState<TipoServicio>(
-    trabajo?.tipo_servicio || "limpieza_general"
+    trabajo?.tipo_servicio || "limpieza_general",
   );
   const [estado, setEstado] = useState<EstadoTrabajo>(
-    trabajo?.estado || "pendiente"
+    trabajo?.estado || "pendiente",
   );
   const [fechaInicio, setFechaInicio] = useState(() => {
     if (trabajo?.fecha_inicio) {
@@ -78,7 +83,7 @@ export function TrabajoForm({
   });
   const [direccion, setDireccion] = useState(trabajo?.direccion || "");
   const [precioAcordado, setPrecioAcordado] = useState(
-    trabajo?.precio_acordado?.toString() || ""
+    trabajo?.precio_acordado?.toString() || "",
   );
 
   // Reset form when trabajo changes
@@ -225,7 +230,9 @@ export function TrabajoForm({
                 <Label htmlFor="tipo">Tipo de Servicio *</Label>
                 <Select
                   value={tipoServicio}
-                  onValueChange={(value) => setTipoServicio(value as TipoServicio)}
+                  onValueChange={(value) =>
+                    setTipoServicio(value as TipoServicio)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />

@@ -27,7 +27,7 @@ export async function getGoogleCalendarClient(userId: string) {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    process.env.GOOGLE_REDIRECT_URI,
   );
 
   // Set credentials with decrypted tokens
@@ -65,7 +65,7 @@ export async function getGoogleCalendarClient(userId: string) {
  * @returns Google Calendar event object
  */
 export function trabajoToGoogleEvent(
-  trabajo: Trabajo & { cliente?: Cliente | null }
+  trabajo: Trabajo & { cliente?: Cliente | null },
 ) {
   return {
     summary: trabajo.titulo,
@@ -98,7 +98,7 @@ export function trabajoToGoogleEvent(
  * Google Calendar color IDs: 1-11 (see https://developers.google.com/calendar/api/v3/reference/colors)
  */
 function getColorIdForTipoServicio(
-  tipo: Trabajo["tipo_servicio"]
+  tipo: Trabajo["tipo_servicio"],
 ): string | undefined {
   const colorMap: Record<Trabajo["tipo_servicio"], string> = {
     limpieza_general: "9", // Blue
@@ -115,16 +115,14 @@ function getColorIdForTipoServicio(
  * Converts a Google Calendar event back to Trabajo update data
  * Used for syncing changes made in Google Calendar back to the app
  */
-export function googleEventToTrabajoUpdate(
-  event: { 
-    summary?: string; 
-    start?: { dateTime?: string; date?: string }; 
-    end?: { dateTime?: string; date?: string }; 
-    description?: string; 
-    location?: string; 
-    extendedProperties?: { private?: Record<string, string> } 
-  }
-): Partial<Trabajo> | null {
+export function googleEventToTrabajoUpdate(event: {
+  summary?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+  description?: string;
+  location?: string;
+  extendedProperties?: { private?: Record<string, string> };
+}): Partial<Trabajo> | null {
   // Extract our custom properties
   const privateProps = event.extendedProperties?.private;
 

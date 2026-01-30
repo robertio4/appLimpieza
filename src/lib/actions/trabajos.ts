@@ -45,7 +45,7 @@ export async function getTrabajos(): Promise<
     return createSuccessResult(data as TrabajoConCliente[]);
   } catch (error) {
     return createErrorResult(
-      error instanceof Error ? error.message : "Error al cargar trabajos"
+      error instanceof Error ? error.message : "Error al cargar trabajos",
     );
   }
 }
@@ -54,7 +54,7 @@ export async function getTrabajos(): Promise<
  * Gets a single trabajo by ID with all related data
  */
 export async function getTrabajo(
-  id: string
+  id: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<ActionResult<any>> {
   try {
@@ -67,7 +67,9 @@ export async function getTrabajo(
 
     const { data, error } = await supabase
       .from("trabajos")
-      .select("*, cliente:clientes(*), factura:facturas(*), sync:calendario_sync(*)")
+      .select(
+        "*, cliente:clientes(*), factura:facturas(*), sync:calendario_sync(*)",
+      )
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
@@ -79,7 +81,7 @@ export async function getTrabajo(
     return createSuccessResult(data);
   } catch (error) {
     return createErrorResult(
-      error instanceof Error ? error.message : "Error al cargar trabajo"
+      error instanceof Error ? error.message : "Error al cargar trabajo",
     );
   }
 }
@@ -88,7 +90,7 @@ export async function getTrabajo(
  * Creates a new trabajo and automatically syncs to Google Calendar
  */
 export async function createTrabajo(
-  trabajo: Omit<TrabajoInsert, "user_id">
+  trabajo: Omit<TrabajoInsert, "user_id">,
 ): Promise<ActionResult<Trabajo>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -121,7 +123,7 @@ export async function createTrabajo(
     return createSuccessResult(data);
   } catch (error) {
     return createErrorResult(
-      error instanceof Error ? error.message : "Error al crear trabajo"
+      error instanceof Error ? error.message : "Error al crear trabajo",
     );
   }
 }
@@ -131,7 +133,7 @@ export async function createTrabajo(
  */
 export async function updateTrabajo(
   id: string,
-  trabajo: Partial<TrabajoUpdate>
+  trabajo: Partial<TrabajoUpdate>,
 ): Promise<ActionResult<Trabajo>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -166,7 +168,7 @@ export async function updateTrabajo(
     return createSuccessResult(data);
   } catch (error) {
     return createErrorResult(
-      error instanceof Error ? error.message : "Error al actualizar trabajo"
+      error instanceof Error ? error.message : "Error al actualizar trabajo",
     );
   }
 }
@@ -206,7 +208,7 @@ export async function deleteTrabajo(id: string): Promise<ActionResult<void>> {
     return createSuccessResult(undefined);
   } catch (error) {
     return createErrorResult(
-      error instanceof Error ? error.message : "Error al eliminar trabajo"
+      error instanceof Error ? error.message : "Error al eliminar trabajo",
     );
   }
 }
@@ -216,7 +218,7 @@ export async function deleteTrabajo(id: string): Promise<ActionResult<void>> {
  * Links the invoice to the trabajo
  */
 export async function completarTrabajo(
-  id: string
+  id: string,
 ): Promise<ActionResult<{ factura_id: string }>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -252,7 +254,7 @@ export async function completarTrabajo(
     // Generate invoice number
     const { data: numeroResult, error: numeroError } = await supabase.rpc(
       "generate_invoice_number",
-      { p_user_id: user.id }
+      { p_user_id: user.id },
     );
 
     if (numeroError) {
@@ -319,7 +321,7 @@ export async function completarTrabajo(
     return createErrorResult(
       error instanceof Error
         ? error.message
-        : "Error al completar trabajo y crear factura"
+        : "Error al completar trabajo y crear factura",
     );
   }
 }
@@ -333,7 +335,7 @@ export async function completarTrabajo(
 export async function createRecurringTrabajos(
   baseJobId: string,
   occurrences: number,
-  pattern: "weekly" | "biweekly" | "monthly"
+  pattern: "weekly" | "biweekly" | "monthly",
 ): Promise<ActionResult<{ created: number }>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -410,7 +412,7 @@ export async function createRecurringTrabajos(
     return createErrorResult(
       error instanceof Error
         ? error.message
-        : "Error al crear trabajos recurrentes"
+        : "Error al crear trabajos recurrentes",
     );
   }
 }
