@@ -12,6 +12,9 @@ export type Json =
   | Json[];
 
 export type EstadoFactura = 'borrador' | 'enviada' | 'pagada';
+export type TipoServicio = 'limpieza_general' | 'limpieza_profunda' | 'limpieza_oficina' | 'limpieza_cristales' | 'otros';
+export type EstadoTrabajo = 'pendiente' | 'en_progreso' | 'completado' | 'cancelado';
+export type SyncStatus = 'synced' | 'pending' | 'error';
 
 export interface Database {
   public: {
@@ -244,6 +247,196 @@ export interface Database {
           }
         ];
       };
+      trabajos: {
+        Row: {
+          id: string;
+          user_id: string;
+          cliente_id: string;
+          titulo: string;
+          descripcion: string | null;
+          tipo_servicio: TipoServicio;
+          estado: EstadoTrabajo;
+          fecha_inicio: string;
+          fecha_fin: string;
+          direccion: string | null;
+          precio_acordado: number | null;
+          es_recurrente: boolean;
+          recurrencia_patron: string | null;
+          recurrencia_padre_id: string | null;
+          factura_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          cliente_id: string;
+          titulo: string;
+          descripcion?: string | null;
+          tipo_servicio?: TipoServicio;
+          estado?: EstadoTrabajo;
+          fecha_inicio: string;
+          fecha_fin: string;
+          direccion?: string | null;
+          precio_acordado?: number | null;
+          es_recurrente?: boolean;
+          recurrencia_patron?: string | null;
+          recurrencia_padre_id?: string | null;
+          factura_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          cliente_id?: string;
+          titulo?: string;
+          descripcion?: string | null;
+          tipo_servicio?: TipoServicio;
+          estado?: EstadoTrabajo;
+          fecha_inicio?: string;
+          fecha_fin?: string;
+          direccion?: string | null;
+          precio_acordado?: number | null;
+          es_recurrente?: boolean;
+          recurrencia_patron?: string | null;
+          recurrencia_padre_id?: string | null;
+          factura_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'trabajos_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trabajos_cliente_id_fkey';
+            columns: ['cliente_id'];
+            isOneToOne: false;
+            referencedRelation: 'clientes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trabajos_factura_id_fkey';
+            columns: ['factura_id'];
+            isOneToOne: false;
+            referencedRelation: 'facturas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trabajos_recurrencia_padre_id_fkey';
+            columns: ['recurrencia_padre_id'];
+            isOneToOne: false;
+            referencedRelation: 'trabajos';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      google_oauth_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          access_token: string;
+          refresh_token: string;
+          token_expiry: string;
+          scope: string[];
+          calendar_id: string | null;
+          is_active: boolean;
+          last_sync_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          access_token: string;
+          refresh_token: string;
+          token_expiry: string;
+          scope: string[];
+          calendar_id?: string | null;
+          is_active?: boolean;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          access_token?: string;
+          refresh_token?: string;
+          token_expiry?: string;
+          scope?: string[];
+          calendar_id?: string | null;
+          is_active?: boolean;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'google_oauth_tokens_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      calendario_sync: {
+        Row: {
+          id: string;
+          user_id: string;
+          trabajo_id: string;
+          google_event_id: string;
+          sync_status: SyncStatus;
+          last_synced_at: string | null;
+          error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          trabajo_id: string;
+          google_event_id: string;
+          sync_status?: SyncStatus;
+          last_synced_at?: string | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          trabajo_id?: string;
+          google_event_id?: string;
+          sync_status?: SyncStatus;
+          last_synced_at?: string | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'calendario_sync_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'calendario_sync_trabajo_id_fkey';
+            columns: ['trabajo_id'];
+            isOneToOne: true;
+            referencedRelation: 'trabajos';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -258,6 +451,9 @@ export interface Database {
     };
     Enums: {
       estado_factura: EstadoFactura;
+      tipo_servicio: TipoServicio;
+      estado_trabajo: EstadoTrabajo;
+      sync_status: SyncStatus;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -286,6 +482,18 @@ export type Gasto = Database['public']['Tables']['gastos']['Row'];
 export type GastoInsert = Database['public']['Tables']['gastos']['Insert'];
 export type GastoUpdate = Database['public']['Tables']['gastos']['Update'];
 
+export type Trabajo = Database['public']['Tables']['trabajos']['Row'];
+export type TrabajoInsert = Database['public']['Tables']['trabajos']['Insert'];
+export type TrabajoUpdate = Database['public']['Tables']['trabajos']['Update'];
+
+export type GoogleOAuthToken = Database['public']['Tables']['google_oauth_tokens']['Row'];
+export type GoogleOAuthTokenInsert = Database['public']['Tables']['google_oauth_tokens']['Insert'];
+export type GoogleOAuthTokenUpdate = Database['public']['Tables']['google_oauth_tokens']['Update'];
+
+export type CalendarioSync = Database['public']['Tables']['calendario_sync']['Row'];
+export type CalendarioSyncInsert = Database['public']['Tables']['calendario_sync']['Insert'];
+export type CalendarioSyncUpdate = Database['public']['Tables']['calendario_sync']['Update'];
+
 // Extended types with relationships
 export type FacturaConCliente = Factura & {
   cliente: Cliente;
@@ -302,4 +510,14 @@ export type FacturaCompleta = Factura & {
 
 export type GastoConCategoria = Gasto & {
   categoria: CategoriaGasto | null;
+};
+
+export type TrabajoConCliente = Trabajo & {
+  cliente: Cliente;
+};
+
+export type TrabajoConTodo = Trabajo & {
+  cliente: Cliente;
+  sync: CalendarioSync | null;
+  factura: Factura | null;
 };

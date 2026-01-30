@@ -7,8 +7,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getDashboardStats, getMonthlyTotals } from "@/lib/actions/dashboard";
+import { 
+  getDashboardStats, 
+  getMonthlyTotals,
+  getGastosPorCategoria,
+  getTopClientes 
+} from "@/lib/actions/dashboard";
 import { MonthlyChart } from "@/components/dashboard/monthly-chart";
+import { ExpenseCategoryChart } from "@/components/dashboard/expense-category-chart";
+import { TopClientsChart } from "@/components/dashboard/top-clients-chart";
 import { formatCurrency, formatDate, estadoBadgeStyles, estadoLabels } from "@/lib/utils";
 import type { EstadoFactura } from "@/types/database";
 import {
@@ -19,6 +26,9 @@ import {
   Wallet,
   Clock,
   ArrowRight,
+  Users,
+  Receipt,
+  Percent,
 } from "lucide-react";
 
 function getStatusBadge(estado: EstadoFactura) {
@@ -36,13 +46,17 @@ export default async function DashboardPage() {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const [statsResult, monthlyResult] = await Promise.all([
+  const [statsResult, monthlyResult, expensesByCategoryResult, topClientsResult] = await Promise.all([
     getDashboardStats(month, year),
     getMonthlyTotals(6),
+    getGastosPorCategoria(month, year),
+    getTopClientes(month, year, 5),
   ]);
 
   const stats = statsResult.success ? statsResult.data : null;
   const monthlyData = monthlyResult.success ? monthlyResult.data : [];
+  const expensesByCategory = expensesByCategoryResult.success ? expensesByCategoryResult.data : [];
+  const topClients = topClientsResult.success ? topClientsResult.data : [];
 
   const monthName = now.toLocaleDateString("es-ES", { month: "long" });
 
@@ -185,11 +199,65 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Additional Metrics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-500">
+              Ticket Promedio
+            </CardTitle>
+            <Receipt className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-neutral-900">
+              {formatCurrency(stats?.ticketPromedio || 0)}
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Por factura pagada
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-500">
+              Clientes Activos
+            </CardTitle>
+            <Users className="h-4 w-4 text-indigo-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-neutral-900">
+              {stats?.clientesActivos || 0}
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Este mes
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-500">
+              Tasa de Cobro
+            </CardTitle>
+            <Percent className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-neutral-900">
+              {stats?.tasaCobro.toFixed(1) || 0}%
+            </p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Facturas pagadas
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Chart Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Ingresos vs Gastos</CardTitle>
-          <CardDescription>Comparativa de los ultimos 6 meses</CardDescription>
+          <CardTitle>Evolución Financiera</CardTitle>
+          <CardDescription>Ingresos, gastos y balance de los últimos 6 meses</CardDescription>
         </CardHeader>
         <CardContent>
           {monthlyData.length > 0 ? (
@@ -201,6 +269,29 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* New Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gastos por Categoría</CardTitle>
+            <CardDescription>Distribución de gastos en {monthName}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExpenseCategoryChart data={expensesByCategory} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Top 5 Clientes</CardTitle>
+            <CardDescription>Facturación por cliente en {monthName}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TopClientsChart data={topClients} />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Lists */}
       <div className="grid gap-6 lg:grid-cols-2">

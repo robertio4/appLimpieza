@@ -16,6 +16,21 @@ export interface DashboardStats {
   facturasBorrador: number;
   ultimasFacturas: FacturaConCliente[];
   ultimosGastos: GastoConCategoria[];
+  ticketPromedio: number;
+  clientesActivos: number;
+  tasaCobro: number;
+}
+
+export interface GastosPorCategoria {
+  categoria: string;
+  total: number;
+  color: string;
+}
+
+export interface TopCliente {
+  id: string;
+  nombre: string;
+  total: number;
 }
 
 export async function getDashboardStats(
@@ -119,6 +134,26 @@ export async function getDashboardStats(
       return createErrorResult(lastExpensesError.message);
     }
 
+    // Calcular métricas adicionales
+    const totalInvoicesCount = paidInvoices?.length || 0;
+    const ticketPromedio = totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
+
+    const { data: activeClients } = await supabase
+      .from("facturas")
+      .select("cliente_id")
+      .eq("user_id", user.id)
+      .gte("fecha", startDate)
+      .lte("fecha", endDate);
+
+    const clientesActivos = activeClients 
+      ? new Set(activeClients.map(f => f.cliente_id)).size 
+      : 0;
+
+    const totalInvoices = (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
+    const tasaCobro = totalInvoices > 0 
+      ? (paidInvoices?.length || 0) / totalInvoices * 100 
+      : 0;
+
     return createSuccessResult({
       totalFacturado,
       pendienteCobro,
@@ -128,6 +163,9 @@ export async function getDashboardStats(
       facturasBorrador: draftCount || 0,
       ultimasFacturas: (lastInvoices as FacturaConCliente[]) || [],
       ultimosGastos: (lastExpenses as GastoConCategoria[]) || [],
+      ticketPromedio,
+      clientesActivos,
+      tasaCobro,
     });
   } catch {
     return createErrorResult("Error al obtener las estadísticas");
@@ -198,5 +236,120 @@ export async function getMonthlyTotals(
     return createSuccessResult(results);
   } catch {
     return createErrorResult("Error al obtener los totales mensuales");
+  }
+}
+
+export async function getGastosPorCategoria(
+  month: number,
+  year: number
+): Promise<ActionResult<GastosPorCategoria[]>> {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (!user) {
+      return createErrorResult(authError);
+    }
+
+    const supabase = await createClient();
+    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
+    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+
+    const { data: gastos, error } = await supabase
+      .from("gastos")
+      .select(`
+        importe,
+        categoria:categorias_gasto(nombre, color)
+      `)
+      .eq("user_id", user.id)
+      .gte("fecha", startDate)
+      .lte("fecha", endDate);
+
+    if (error) {
+      return createErrorResult(error.message);
+    }
+
+    const categoriaMap = new Map<string, { total: number; color: string }>();
+    
+    gastos?.forEach((gasto) => {
+      const categoriaNombre = gasto.categoria?.nombre || "Sin categoría";
+      const categoriaColor = gasto.categoria?.color || "#9ca3af";
+      
+      if (categoriaMap.has(categoriaNombre)) {
+        categoriaMap.get(categoriaNombre)!.total += gasto.importe;
+      } else {
+        categoriaMap.set(categoriaNombre, { total: gasto.importe, color: categoriaColor });
+      }
+    });
+
+    const result: GastosPorCategoria[] = Array.from(categoriaMap.entries()).map(
+      ([categoria, { total, color }]) => ({
+        categoria,
+        total,
+        color,
+      })
+    ).sort((a, b) => b.total - a.total);
+
+    return createSuccessResult(result);
+  } catch {
+    return createErrorResult("Error al obtener gastos por categoría");
+  }
+}
+
+export async function getTopClientes(
+  month: number,
+  year: number,
+  limit: number = 5
+): Promise<ActionResult<TopCliente[]>> {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (!user) {
+      return createErrorResult(authError);
+    }
+
+    const supabase = await createClient();
+    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
+    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+
+    const { data: facturas, error } = await supabase
+      .from("facturas")
+      .select(`
+        total,
+        cliente:clientes(id, nombre)
+      `)
+      .eq("user_id", user.id)
+      .eq("estado", "pagada")
+      .gte("fecha", startDate)
+      .lte("fecha", endDate);
+
+    if (error) {
+      return createErrorResult(error.message);
+    }
+
+    const clienteMap = new Map<string, { nombre: string; total: number }>();
+    
+    facturas?.forEach((factura) => {
+      if (factura.cliente) {
+        const clienteId = factura.cliente.id;
+        const clienteNombre = factura.cliente.nombre;
+        
+        if (clienteMap.has(clienteId)) {
+          clienteMap.get(clienteId)!.total += factura.total;
+        } else {
+          clienteMap.set(clienteId, { nombre: clienteNombre, total: factura.total });
+        }
+      }
+    });
+
+    const result: TopCliente[] = Array.from(clienteMap.entries())
+      .map(([id, { nombre, total }]) => ({
+        id,
+        nombre,
+        total,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, limit);
+
+    return createSuccessResult(result);
+  } catch {
+    return createErrorResult("Error al obtener top clientes");
   }
 }
