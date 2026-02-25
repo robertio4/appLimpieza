@@ -21,6 +21,21 @@ export const IVA_RATE = 0.21;
 export const IVA_PERCENTAGE = 21;
 
 /**
+ * Default validity period for presupuestos (in days)
+ */
+export const PRESUPUESTO_VALIDITY_DAYS = 30;
+
+/**
+ * Presupuesto status values
+ */
+export const ESTADOS_PRESUPUESTO = {
+  pendiente: "Pendiente",
+  aceptado: "Aceptado",
+  rechazado: "Rechazado",
+  expirado: "Expirado",
+} as const;
+
+/**
  * Service type labels for trabajos (cleaning jobs)
  */
 export const TIPOS_SERVICIO = {

@@ -13,16 +13,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FacturaActions } from "@/components/facturas/FacturaActions";
+import { PresupuestoActions } from "@/components/presupuestos/PresupuestoActions";
 import {
-  getFacturaCompleta,
-  updateFactura,
-  updateEstadoFactura,
+  getPresupuestoCompleto,
+  updatePresupuesto,
+  updateEstadoPresupuesto,
   getClientes,
-} from "@/lib/actions/facturas";
-import { formatCurrency, formatDate, estadoBadgeStyles, estadoBadgeColors, estadoLabels } from "@/lib/utils";
+  convertPresupuestoToFactura,
+  duplicatePresupuesto,
+} from "@/lib/actions/presupuestos";
+import { formatCurrency, formatDate, estadoPresupuestoBadgeStyles, estadoPresupuestoBadgeColors, estadoPresupuestoLabels, isPresupuestoExpired } from "@/lib/utils";
 import { DATOS_EMPRESA, IVA_PERCENTAGE } from "@/lib/constants";
-import type { FacturaCompleta, Cliente, EstadoFactura } from "@/types/database";
+import type { PresupuestoCompleto, Cliente, EstadoPresupuesto } from "@/types/database";
 import {
   ArrowLeft,
   Loader2,
@@ -32,6 +34,10 @@ import {
   Printer,
   Save,
   X,
+  FileText,
+  Copy,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 
 interface LineaForm {
@@ -45,12 +51,12 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
-export default function FacturaDetailPage() {
+export default function PresupuestoDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const facturaId = params.id as string;
+  const presupuestoId = params.id as string;
 
-  const [factura, setFactura] = useState<FacturaCompleta | null>(null);
+  const [presupuesto, setPresupuesto] = useState<PresupuestoCompleto | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,7 +67,7 @@ export default function FacturaDetailPage() {
   // Edit form state
   const [editClienteId, setEditClienteId] = useState<string>("");
   const [editFecha, setEditFecha] = useState<string>("");
-  const [editFechaVencimiento, setEditFechaVencimiento] = useState<string>("");
+  const [editFechaValidez, setEditFechaValidez] = useState<string>("");
   const [editNotas, setEditNotas] = useState<string>("");
   const [editLineas, setEditLineas] = useState<LineaForm[]>([]);
 
@@ -70,18 +76,18 @@ export default function FacturaDetailPage() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const loadFactura = useCallback(async () => {
+  const loadPresupuesto = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [facturaResult, clientesResult] = await Promise.all([
-        getFacturaCompleta(facturaId),
+      const [presupuestoResult, clientesResult] = await Promise.all([
+        getPresupuestoCompleto(presupuestoId),
         getClientes(),
       ]);
 
-      if (facturaResult.success) {
-        setFactura(facturaResult.data);
+      if (presupuestoResult.success) {
+        setPresupuesto(presupuestoResult.data);
       } else {
-        setError(facturaResult.error);
+        setError(presupuestoResult.error);
       }
 
       if (clientesResult.success) {
@@ -90,20 +96,27 @@ export default function FacturaDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [facturaId]);
+  }, [presupuestoId]);
 
   useEffect(() => {
-    loadFactura();
-  }, [loadFactura]);
+    loadPresupuesto();
+  }, [loadPresupuesto]);
 
   const startEditing = () => {
-    if (!factura) return;
-    setEditClienteId(factura.cliente_id);
-    setEditFecha(factura.fecha);
-    setEditFechaVencimiento(factura.fecha_vencimiento || "");
-    setEditNotas(factura.notas || "");
+    if (!presupuesto) return;
+
+    // Don't allow editing if aceptado or rechazado
+    if (presupuesto.estado === "aceptado" || presupuesto.estado === "rechazado") {
+      showToast("No se puede editar un presupuesto aceptado o rechazado");
+      return;
+    }
+
+    setEditClienteId(presupuesto.cliente_id);
+    setEditFecha(presupuesto.fecha);
+    setEditFechaValidez(presupuesto.fecha_validez);
+    setEditNotas(presupuesto.notas || "");
     setEditLineas(
-      factura.lineas_factura.map((l) => ({
+      presupuesto.lineas_presupuesto.map((l) => ({
         id: l.id,
         concepto: l.concepto,
         cantidad: l.cantidad,
@@ -175,10 +188,10 @@ export default function FacturaDetailPage() {
     setError(null);
 
     try {
-      const result = await updateFactura(facturaId, {
+      const result = await updatePresupuesto(presupuestoId, {
         cliente_id: editClienteId,
         fecha: editFecha,
-        fecha_vencimiento: editFechaVencimiento || undefined,
+        fecha_validez: editFechaValidez,
         notas: editNotas || undefined,
         lineas: validLineas.map((l) => ({
           concepto: l.concepto,
@@ -189,8 +202,8 @@ export default function FacturaDetailPage() {
 
       if (result.success) {
         setIsEditing(false);
-        loadFactura();
-        showToast("Factura actualizada correctamente");
+        loadPresupuesto();
+        showToast("Presupuesto actualizado correctamente");
       } else {
         setError(result.error);
       }
@@ -199,13 +212,47 @@ export default function FacturaDetailPage() {
     }
   };
 
-  const handleEstadoChange = async (estado: EstadoFactura) => {
+  const handleEstadoChange = async (estado: EstadoPresupuesto) => {
     setIsSaving(true);
     try {
-      const result = await updateEstadoFactura(facturaId, estado);
+      const result = await updateEstadoPresupuesto(presupuestoId, estado);
       if (result.success) {
-        loadFactura();
-        showToast(`Estado actualizado a "${estadoLabels[estado]}"`);
+        loadPresupuesto();
+        showToast(`Estado actualizado a "${estadoPresupuestoLabels[estado]}"`);
+      } else {
+        showToast(result.error);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleConvertToFactura = async () => {
+    if (!confirm("¿Convertir este presupuesto a factura?")) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await convertPresupuestoToFactura(presupuestoId);
+      if (result.success) {
+        showToast("Presupuesto convertido a factura");
+        router.push(`/facturas/${result.data.id}`);
+      } else {
+        showToast(result.error);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    setIsSaving(true);
+    try {
+      const result = await duplicatePresupuesto(presupuestoId);
+      if (result.success) {
+        showToast("Presupuesto duplicado");
+        router.push(`/presupuestos/${result.data.id}`);
       } else {
         showToast(result.error);
       }
@@ -226,20 +273,24 @@ export default function FacturaDetailPage() {
     );
   }
 
-  if (!factura) {
+  if (!presupuesto) {
     return (
       <div className="text-center py-12">
-        <p className="text-neutral-500">Factura no encontrada</p>
+        <p className="text-neutral-500">Presupuesto no encontrado</p>
         <Button
           variant="outline"
           className="mt-4"
-          onClick={() => router.push("/facturas")}
+          onClick={() => router.push("/presupuestos")}
         >
-          Volver a facturas
+          Volver a presupuestos
         </Button>
       </div>
     );
   }
+
+  const isExpired = isPresupuestoExpired(presupuesto.fecha_validez);
+  const canEdit = presupuesto.estado !== "aceptado" && presupuesto.estado !== "rechazado";
+  const canConvert = presupuesto.estado === "pendiente" || presupuesto.estado === "expirado";
 
   return (
     <div className="space-y-6">
@@ -249,23 +300,29 @@ export default function FacturaDetailPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/facturas")}
+            onClick={() => router.push("/presupuestos")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">
-              Factura {factura.numero}
+              Presupuesto {presupuesto.numero}
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  estadoBadgeStyles[factura.estado]
+                  estadoPresupuestoBadgeStyles[presupuesto.estado]
                 }`}
-                style={{ backgroundColor: estadoBadgeColors[factura.estado] }}
+                style={{ backgroundColor: estadoPresupuestoBadgeColors[presupuesto.estado] }}
               >
-                {estadoLabels[factura.estado]}
+                {estadoPresupuestoLabels[presupuesto.estado]}
               </span>
+              {isExpired && presupuesto.estado === "pendiente" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                  <AlertTriangle className="h-3 w-3" />
+                  Expirado
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -273,27 +330,42 @@ export default function FacturaDetailPage() {
         <div className="flex items-center gap-2">
           {!isEditing ? (
             <>
-              <FacturaActions factura={factura} onSuccess={loadFactura} />
+              <PresupuestoActions presupuesto={presupuesto} onSuccess={loadPresupuesto} />
               <Button variant="outline" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir
               </Button>
-              <Button variant="outline" onClick={startEditing}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar
+              {canEdit && (
+                <Button variant="outline" onClick={startEditing}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              )}
+              {canConvert && (
+                <Button onClick={handleConvertToFactura} disabled={isSaving}>
+                  {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <FileText className="h-4 w-4 mr-2" />
+                  Convertir a Factura
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleDuplicate} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicar
               </Button>
-              {factura.estado !== "pagada" && (
+              {presupuesto.estado === "pendiente" && (
                 <Select
-                  value={factura.estado}
-                  onValueChange={(v) => handleEstadoChange(v as EstadoFactura)}
+                  value={presupuesto.estado}
+                  onValueChange={(v) => handleEstadoChange(v as EstadoPresupuesto)}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="borrador">Borrador</SelectItem>
-                    <SelectItem value="enviada">Enviada</SelectItem>
-                    <SelectItem value="pagada">Pagada</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="aceptado">Aceptado</SelectItem>
+                    <SelectItem value="rechazado">Rechazado</SelectItem>
+                    <SelectItem value="expirado">Expirado</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -321,7 +393,31 @@ export default function FacturaDetailPage() {
         </div>
       )}
 
-      {/* Invoice Preview / Edit Form */}
+      {/* Link to Factura if accepted */}
+      {presupuesto.estado === "aceptado" && presupuesto.factura_id && (
+        <div className="print:hidden rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-green-800">
+                Presupuesto Aceptado
+              </h3>
+              <p className="text-sm text-green-700">
+                Este presupuesto ha sido convertido a factura
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/facturas/${presupuesto.factura_id}`)}
+            >
+              Ver Factura
+              <ExternalLink className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Presupuesto Preview / Edit Form */}
       {isEditing ? (
         // Edit Form
         <div className="space-y-6 max-w-4xl">
@@ -347,7 +443,7 @@ export default function FacturaDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fecha">Fecha factura *</Label>
+                <Label htmlFor="fecha">Fecha presupuesto *</Label>
                 <Input
                   id="fecha"
                   type="date"
@@ -357,22 +453,23 @@ export default function FacturaDetailPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fechaVencimiento">Fecha vencimiento</Label>
+                <Label htmlFor="fechaValidez">Fecha validez *</Label>
                 <Input
-                  id="fechaVencimiento"
+                  id="fechaValidez"
                   type="date"
-                  value={editFechaVencimiento}
-                  onChange={(e) => setEditFechaVencimiento(e.target.value)}
+                  value={editFechaValidez}
+                  onChange={(e) => setEditFechaValidez(e.target.value)}
+                  required
                 />
               </div>
             </div>
           </div>
 
-          {/* Invoice Lines */}
+          {/* Presupuesto Lines */}
           <div className="rounded-lg border border-neutral-200 bg-white p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-neutral-900">
-                Líneas de factura
+                Líneas de presupuesto
               </h2>
               <Button type="button" variant="outline" onClick={handleAddLinea}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -501,7 +598,7 @@ export default function FacturaDetailPage() {
               Notas
             </h2>
             <Textarea
-              placeholder="Notas adicionales para la factura..."
+              placeholder="Notas adicionales para el presupuesto..."
               value={editNotas}
               onChange={(e) => setEditNotas(e.target.value)}
               rows={3}
@@ -509,9 +606,9 @@ export default function FacturaDetailPage() {
           </div>
         </div>
       ) : (
-        // Preview Mode - styled HTML invoice
+        // Preview Mode - styled HTML presupuesto
         <div className="max-w-4xl mx-auto bg-white rounded-lg border border-neutral-200 print:border-none print:shadow-none p-8 print:p-0">
-          {/* Invoice Header */}
+          {/* Presupuesto Header */}
           <div className="flex justify-between items-start mb-8">
             <div className="w-20 h-20 bg-neutral-100 rounded flex items-center justify-center text-xs text-neutral-400">
               LOGO
@@ -527,56 +624,57 @@ export default function FacturaDetailPage() {
             </div>
           </div>
 
-          {/* Invoice Title */}
+          {/* Presupuesto Title */}
           <h1 className="text-3xl font-bold text-center text-neutral-900 mb-8">
-            FACTURA
+            PRESUPUESTO
           </h1>
 
-          {/* Client and Invoice Info */}
+          {/* Client and Presupuesto Info */}
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="bg-neutral-50 p-4 rounded-lg">
               <h3 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
                 Cliente
               </h3>
               <p className="font-semibold text-neutral-900">
-                {factura.cliente.nombre}
+                {presupuesto.cliente.nombre}
               </p>
-              {factura.cliente.direccion && (
+              {presupuesto.cliente.direccion && (
                 <p className="text-sm text-neutral-600">
-                  {factura.cliente.direccion}
+                  {presupuesto.cliente.direccion}
                 </p>
               )}
-              {factura.cliente.nif && (
+              {presupuesto.cliente.nif && (
                 <p className="text-sm text-neutral-600">
-                  NIF: {factura.cliente.nif}
+                  NIF: {presupuesto.cliente.nif}
                 </p>
               )}
-              {factura.cliente.email && (
-                <p className="text-sm text-neutral-600">{factura.cliente.email}</p>
+              {presupuesto.cliente.email && (
+                <p className="text-sm text-neutral-600">{presupuesto.cliente.email}</p>
               )}
-              {factura.cliente.telefono && (
+              {presupuesto.cliente.telefono && (
                 <p className="text-sm text-neutral-600">
-                  Tel: {factura.cliente.telefono}
+                  Tel: {presupuesto.cliente.telefono}
                 </p>
               )}
             </div>
             <div className="border-l-2 border-neutral-900 pl-4">
               <h3 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
-                Detalles Factura
+                Detalles Presupuesto
               </h3>
               <p className="text-lg font-bold text-neutral-900">
-                N.º {factura.numero}
+                N.º {presupuesto.numero}
               </p>
               <p className="text-sm text-neutral-600 mt-2">
                 <span className="text-neutral-500">Fecha: </span>
-                {formatDate(factura.fecha)}
+                {formatDate(presupuesto.fecha)}
               </p>
-              {factura.fecha_vencimiento && (
-                <p className="text-sm text-neutral-600">
-                  <span className="text-neutral-500">Vencimiento: </span>
-                  {formatDate(factura.fecha_vencimiento)}
-                </p>
-              )}
+              <p className="text-sm text-neutral-600">
+                <span className="text-neutral-500">Validez: </span>
+                {formatDate(presupuesto.fecha_validez)}
+                {isExpired && (
+                  <span className="ml-2 text-amber-600 font-medium">(Expirado)</span>
+                )}
+              </p>
             </div>
           </div>
 
@@ -600,7 +698,7 @@ export default function FacturaDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {factura.lineas_factura.map((linea, index) => (
+                {presupuesto.lineas_presupuesto.map((linea, index) => (
                   <tr
                     key={linea.id}
                     className={index % 2 === 1 ? "bg-neutral-50" : "bg-white"}
@@ -629,34 +727,42 @@ export default function FacturaDetailPage() {
               <div className="flex justify-between py-2 border-b border-neutral-200">
                 <span className="text-neutral-600">Subtotal</span>
                 <span className="font-medium">
-                  {formatCurrency(factura.subtotal)}
+                  {formatCurrency(presupuesto.subtotal)}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-neutral-200">
                 <span className="text-neutral-600">IVA (21%)</span>
                 <span className="font-medium">
-                  {formatCurrency(factura.iva)}
+                  {formatCurrency(presupuesto.iva)}
                 </span>
               </div>
               <div className="flex justify-between py-3 bg-neutral-900 text-white rounded mt-2 px-3">
                 <span className="font-semibold">Total</span>
                 <span className="font-bold text-lg">
-                  {formatCurrency(factura.total)}
+                  {formatCurrency(presupuesto.total)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Notes and Payment */}
+          {/* Notes and Validity */}
           <div className="space-y-4">
-            {factura.notas && (
+            {presupuesto.notas && (
               <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
                 <h3 className="text-sm font-semibold text-amber-800 mb-1">
                   Notas
                 </h3>
-                <p className="text-sm text-amber-900">{factura.notas}</p>
+                <p className="text-sm text-amber-900">{presupuesto.notas}</p>
               </div>
             )}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+              <h3 className="text-sm font-semibold text-blue-800 mb-1">
+                Validez del presupuesto
+              </h3>
+              <p className="text-sm text-blue-900">
+                Este presupuesto es válido hasta el {formatDate(presupuesto.fecha_validez)}.
+              </p>
+            </div>
             <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
               <h3 className="text-sm font-semibold text-green-800 mb-1">
                 Forma de pago

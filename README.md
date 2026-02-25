@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Project Overview
 
-This is a business management application designed for cleaning companies, providing tools for invoice management, expense tracking, and financial dashboard reporting.
+This is a business management application designed for cleaning companies, providing tools for quote/estimate management (presupuestos), invoice management (facturas), client management, expense tracking, calendar scheduling, and financial dashboard reporting. Quotes can be seamlessly converted to invoices with a single click, maintaining full traceability throughout the business workflow.
 
 ### Recent Code Improvements
 
@@ -14,6 +14,29 @@ The codebase has recently undergone significant refactoring and cleanup to impro
 - ✅ Standardized error handling across all server actions
 - ✅ Centralized formatting functions and constants
 - ✅ Improved type safety and consistency
+
+## Features
+
+- 📋 **Quote Management (Presupuestos)**: Create, track, and manage quotes with automatic numbering (PRE-2026-0001), validity dates, and status tracking
+- 🔄 **Quote to Invoice Conversion**: Convert accepted quotes to invoices with a single click, maintaining full traceability
+- 🧾 **Invoice Management (Facturas)**: Generate and track invoices with status workflow (borrador → enviada → pagada)
+- 👥 **Client Management**: Store and manage client information with full contact details
+- 💰 **Expense Tracking**: Categorize and track business expenses with custom categories
+- 📅 **Calendar Integration**: Schedule jobs and sync with Google Calendar
+- 📄 **PDF Generation**: Export quotes and invoices as professional PDF documents
+- 📧 **Email Integration**: Send quotes and invoices via Gmail with pre-filled templates
+- 📊 **Financial Dashboard**: View financial metrics and insights at a glance
+- 🔒 **Multi-user Support**: Row-level security ensures users only see their own data
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router) with React 18
+- **Language**: TypeScript 5
+- **Database**: Supabase (PostgreSQL + Authentication)
+- **UI**: Tailwind CSS, shadcn/ui components, Lucide icons
+- **Forms**: React Hook Form with Zod validation
+- **Charts**: Recharts
+- **PDF Generation**: @react-pdf/renderer
 
 ## Getting Started
 
@@ -75,18 +98,35 @@ supabase db push
 
 1. Go to your Supabase project dashboard
 2. Navigate to SQL Editor
-3. Copy the contents of `supabase/migrations/001_initial_schema.sql`
-4. Paste and run the SQL in the editor
+3. Run migrations in order:
+   - Copy and run `supabase/migrations/001_initial_schema.sql`
+   - Copy and run `supabase/migrations/002_presupuestos.sql`
 
 ### Database Schema
 
 The database includes the following tables:
 
+**Core Tables:**
 - **clientes**: Client information (name, email, phone, address, NIF)
-- **facturas**: Invoices linked to clients with status tracking
+- **presupuestos**: Quotes/estimates with validity dates and status (pendiente/aceptado/rechazado/expirado)
+- **lineas_presupuesto**: Individual line items for each quote
+- **facturas**: Invoices linked to clients with status tracking (borrador/enviada/pagada)
 - **lineas_factura**: Individual line items for each invoice
 - **categorias_gasto**: Expense categories with custom colors
 - **gastos**: Expense records linked to categories
+
+**Additional Tables:**
+- **trabajos**: Job/work records with scheduling and status tracking
+- **calendario_sync**: Google Calendar synchronization records
+
+**Quote to Invoice Workflow:**
+
+When a presupuesto (quote) is accepted:
+1. The quote is converted to a factura (invoice) using `convertPresupuestoToFactura()` server action
+2. All line items are copied from the quote to the new invoice
+3. The quote's estado changes to "aceptado" and maintains a reference to the generated invoice
+4. The invoice starts with estado "borrador" (draft) and can be further edited before sending
+5. Full traceability is maintained - quotes cannot be edited or deleted once accepted
 
 ### Row Level Security (RLS)
 
@@ -115,7 +155,15 @@ The seed data includes:
 Database types are available in `src/types/database.ts`. Import them in your code:
 
 ```typescript
-import { Cliente, Factura, Gasto, Database } from '@/types/database';
+import {
+  Cliente,
+  Presupuesto,
+  PresupuestoCompleto,
+  Factura,
+  FacturaCompleta,
+  Gasto,
+  Database
+} from '@/types/database';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient<Database>(

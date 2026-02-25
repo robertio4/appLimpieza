@@ -34,7 +34,7 @@ export async function getFacturas(): Promise<ActionResult<FacturaConCliente[]>> 
       `
       )
       .eq("user_id", user.id)
-      .order("fecha", { ascending: false });
+      .order("numero", { ascending: false });
 
     if (error) {
       return createErrorResult(error.message);
@@ -68,7 +68,7 @@ export async function getFacturasByFilters(
       `
       )
       .eq("user_id", user.id)
-      .order("fecha", { ascending: false });
+      .order("numero", { ascending: false });
 
     if (startDate) {
       query = query.gte("fecha", startDate);

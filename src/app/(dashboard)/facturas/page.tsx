@@ -29,7 +29,7 @@ import {
 } from "@/lib/actions/facturas";
 import { pdf } from "@react-pdf/renderer";
 import { FacturaPDF } from "@/components/facturas/FacturaPDF";
-import { formatCurrency, formatDate, estadoBadgeStyles, estadoLabels } from "@/lib/utils";
+import { formatCurrency, formatDate, estadoBadgeStyles, estadoBadgeColors, estadoLabels } from "@/lib/utils";
 import { DATOS_EMPRESA } from "@/lib/constants";
 import type {
   FacturaConCliente,
@@ -47,6 +47,9 @@ import {
   CheckCircle,
   Trash2,
   Loader2,
+  FileEdit,
+  Send,
+  CircleCheck,
 } from "lucide-react";
 
 export default function FacturasPage() {
@@ -375,7 +378,8 @@ export default function FacturasPage() {
                 {facturas.map((factura) => (
                   <tr
                     key={factura.id}
-                    className="hover:bg-neutral-50 transition-colors"
+                    onClick={() => handleViewFactura(factura.id)}
+                    className="hover:bg-neutral-50 transition-colors cursor-pointer"
                   >
                     <td className="px-4 py-3 text-sm font-medium text-neutral-900">
                       {factura.numero}
@@ -391,10 +395,14 @@ export default function FacturasPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-center">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                           estadoBadgeStyles[factura.estado]
                         }`}
+                        style={{ backgroundColor: estadoBadgeColors[factura.estado] }}
                       >
+                        {factura.estado === "borrador" && <FileEdit className="h-3.5 w-3.5" />}
+                        {factura.estado === "enviada" && <Send className="h-3.5 w-3.5" />}
+                        {factura.estado === "pagada" && <CircleCheck className="h-3.5 w-3.5" />}
                         {estadoLabels[factura.estado]}
                       </span>
                     </td>
@@ -406,6 +414,7 @@ export default function FacturasPage() {
                             size="icon"
                             className="h-8 w-8"
                             disabled={loadingAction === factura.id}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             {loadingAction === factura.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

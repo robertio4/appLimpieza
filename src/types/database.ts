@@ -12,6 +12,7 @@ export type Json =
   | Json[];
 
 export type EstadoFactura = 'borrador' | 'enviada' | 'pagada';
+export type EstadoPresupuesto = 'pendiente' | 'aceptado' | 'rechazado' | 'expirado';
 export type TipoServicio = 'limpieza_general' | 'limpieza_profunda' | 'limpieza_oficina' | 'limpieza_cristales' | 'otros';
 export type EstadoTrabajo = 'pendiente' | 'en_progreso' | 'completado' | 'cancelado';
 export type SyncStatus = 'synced' | 'pending' | 'error';
@@ -160,6 +161,114 @@ export interface Database {
             columns: ['factura_id'];
             isOneToOne: false;
             referencedRelation: 'facturas';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      presupuestos: {
+        Row: {
+          id: string;
+          user_id: string;
+          numero: string;
+          cliente_id: string;
+          fecha: string;
+          fecha_validez: string;
+          subtotal: number;
+          iva: number;
+          total: number;
+          estado: EstadoPresupuesto;
+          notas: string | null;
+          factura_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          numero: string;
+          cliente_id: string;
+          fecha?: string;
+          fecha_validez: string;
+          subtotal?: number;
+          iva?: number;
+          total?: number;
+          estado?: EstadoPresupuesto;
+          notas?: string | null;
+          factura_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          numero?: string;
+          cliente_id?: string;
+          fecha?: string;
+          fecha_validez?: string;
+          subtotal?: number;
+          iva?: number;
+          total?: number;
+          estado?: EstadoPresupuesto;
+          notas?: string | null;
+          factura_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'presupuestos_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'presupuestos_cliente_id_fkey';
+            columns: ['cliente_id'];
+            isOneToOne: false;
+            referencedRelation: 'clientes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'presupuestos_factura_id_fkey';
+            columns: ['factura_id'];
+            isOneToOne: false;
+            referencedRelation: 'facturas';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      lineas_presupuesto: {
+        Row: {
+          id: string;
+          presupuesto_id: string;
+          concepto: string;
+          cantidad: number;
+          precio_unitario: number;
+          total: number;
+        };
+        Insert: {
+          id?: string;
+          presupuesto_id: string;
+          concepto: string;
+          cantidad?: number;
+          precio_unitario?: number;
+          total?: number;
+        };
+        Update: {
+          id?: string;
+          presupuesto_id?: string;
+          concepto?: string;
+          cantidad?: number;
+          precio_unitario?: number;
+          total?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'lineas_presupuesto_presupuesto_id_fkey';
+            columns: ['presupuesto_id'];
+            isOneToOne: false;
+            referencedRelation: 'presupuestos';
             referencedColumns: ['id'];
           }
         ];
@@ -448,9 +557,16 @@ export interface Database {
         };
         Returns: string;
       };
+      generate_presupuesto_number: {
+        Args: {
+          p_user_id: string;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       estado_factura: EstadoFactura;
+      estado_presupuesto: EstadoPresupuesto;
       tipo_servicio: TipoServicio;
       estado_trabajo: EstadoTrabajo;
       sync_status: SyncStatus;
@@ -473,6 +589,14 @@ export type FacturaUpdate = Database['public']['Tables']['facturas']['Update'];
 export type LineaFactura = Database['public']['Tables']['lineas_factura']['Row'];
 export type LineaFacturaInsert = Database['public']['Tables']['lineas_factura']['Insert'];
 export type LineaFacturaUpdate = Database['public']['Tables']['lineas_factura']['Update'];
+
+export type Presupuesto = Database['public']['Tables']['presupuestos']['Row'];
+export type PresupuestoInsert = Database['public']['Tables']['presupuestos']['Insert'];
+export type PresupuestoUpdate = Database['public']['Tables']['presupuestos']['Update'];
+
+export type LineaPresupuesto = Database['public']['Tables']['lineas_presupuesto']['Row'];
+export type LineaPresupuestoInsert = Database['public']['Tables']['lineas_presupuesto']['Insert'];
+export type LineaPresupuestoUpdate = Database['public']['Tables']['lineas_presupuesto']['Update'];
 
 export type CategoriaGasto = Database['public']['Tables']['categorias_gasto']['Row'];
 export type CategoriaGastoInsert = Database['public']['Tables']['categorias_gasto']['Insert'];
@@ -506,6 +630,20 @@ export type FacturaConLineas = Factura & {
 export type FacturaCompleta = Factura & {
   cliente: Cliente;
   lineas_factura: LineaFactura[];
+};
+
+export type PresupuestoConCliente = Presupuesto & {
+  cliente: Cliente;
+};
+
+export type PresupuestoConLineas = Presupuesto & {
+  lineas_presupuesto: LineaPresupuesto[];
+};
+
+export type PresupuestoCompleto = Presupuesto & {
+  cliente: Cliente;
+  lineas_presupuesto: LineaPresupuesto[];
+  factura?: Factura | null;
 };
 
 export type GastoConCategoria = Gasto & {

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  FileCheck,
   FileText,
   Receipt,
   Calendar,
@@ -20,6 +21,7 @@ import { UserNav } from "@/components/layout/user-nav";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Clientes", href: "/clientes", icon: Users },
+  { name: "Presupuestos", href: "/presupuestos", icon: FileCheck },
   { name: "Facturas", href: "/facturas", icon: FileText },
   { name: "Gastos", href: "/gastos", icon: Receipt },
   { name: "Calendario", href: "/calendario", icon: Calendar },
