@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ViewTransitionLink } from "@/components/ui/view-transition-link";
 import {
   LayoutDashboard,
   Users,
@@ -75,7 +75,7 @@ export function Sidebar() {
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
-                <Link
+                <ViewTransitionLink
                   key={item.name}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -88,14 +88,14 @@ export function Sidebar() {
                 >
                   <item.icon className="h-5 w-5" />
                   {item.name}
-                </Link>
+                </ViewTransitionLink>
               );
             })}
           </nav>
 
           {/* Nueva Factura Button */}
           <div className="p-4">
-            <Link
+            <ViewTransitionLink
               href="/facturas/nueva"
               onClick={() => setIsMobileMenuOpen(false)}
             >
@@ -103,7 +103,7 @@ export function Sidebar() {
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Factura
               </Button>
-            </Link>
+            </ViewTransitionLink>
           </div>
 
           {/* Footer with User Nav */}
