@@ -51,6 +51,18 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
   });
 
+  const navigate = (url: string) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        router.push(url);
+        router.refresh();
+      });
+    } else {
+      router.push(url);
+      router.refresh();
+    }
+  };
+
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
     setIsLoading(true);
@@ -76,8 +88,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      navigate("/dashboard");
     } catch {
       setError("Ocurrió un error inesperado. Inténtalo de nuevo.");
     } finally {
