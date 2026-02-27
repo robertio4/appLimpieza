@@ -97,7 +97,6 @@ export default function FacturasPage() {
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
-  const [isFiltered, setIsFiltered] = useState(false);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -127,10 +126,8 @@ export default function FacturasPage() {
           filterEstado ? (filterEstado as EstadoFactura) : undefined,
           filterCliente || undefined
         );
-        setIsFiltered(true);
       } else {
         result = await getFacturas();
-        setIsFiltered(false);
       }
 
       if (result.success) {
@@ -270,16 +267,14 @@ export default function FacturasPage() {
     }
   };
 
-  const handleApplyFilters = () => {
-    loadFacturas();
-  };
-
   const handleClearFilters = () => {
     setFilterStartDate("");
     setFilterEndDate("");
     setFilterEstado("");
     setFilterCliente("");
   };
+
+  const hasActiveFilters = filterStartDate || filterEndDate || filterEstado || filterCliente;
 
   const handleGenerateRecurring = async () => {
     setIsGenerating(true);
@@ -425,11 +420,23 @@ export default function FacturasPage() {
 
       {/* Filters */}
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-4 w-4 text-neutral-500" />
-          <span className="font-medium text-neutral-700">Filtros</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-neutral-500" />
+            <span className="font-medium text-neutral-700">Filtros</span>
+          </div>
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFilters}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Limpiar filtros
+            </Button>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="filter-start">Fecha inicio</Label>
             <Input
@@ -478,16 +485,6 @@ export default function FacturasPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={handleApplyFilters} className="flex-1">
-              Aplicar
-            </Button>
-            {isFiltered && (
-              <Button variant="outline" onClick={handleClearFilters}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -504,7 +501,7 @@ export default function FacturasPage() {
           <div className="p-8 text-center text-neutral-500">Cargando...</div>
         ) : facturas.length === 0 ? (
           <div className="p-8 text-center text-neutral-500">
-            {isFiltered
+            {hasActiveFilters
               ? "No hay facturas que coincidan con los filtros"
               : "No hay facturas registradas"}
           </div>

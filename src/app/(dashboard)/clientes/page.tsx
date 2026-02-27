@@ -118,7 +118,11 @@ export default function ClientesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {clientes.map((cliente) => (
-            <Card key={cliente.id} className="relative">
+            <Card
+              key={cliente.id}
+              className="relative cursor-pointer transition-colors hover:bg-neutral-50"
+              onClick={() => handleEditCliente(cliente)}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -134,7 +138,10 @@ export default function ClientesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleEditCliente(cliente)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditCliente(cliente);
+                      }}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -142,7 +149,10 @@ export default function ClientesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDeleteClick(cliente)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(cliente);
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
