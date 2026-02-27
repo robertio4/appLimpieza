@@ -4,10 +4,10 @@
 export const DATOS_EMPRESA = {
   nombre: "Limpiezas Roferlim",
   direccion: "Rua da Fraga, 2 - 1º Dcha, 27003 Lugo",
-  nif: "B12345678",
+  nif: "33861402C",
   telefono: "600 418 963",
-  email: "manurggr@gmail.com",
-  iban: "ES12 1234 5678 9012 3456 7890",
+  email: "roferlimpiezas@gmail.com",
+  iban: "ES67 3070 0020 2315 6082 1819",
 };
 
 /**

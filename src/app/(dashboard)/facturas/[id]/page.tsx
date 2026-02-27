@@ -515,8 +515,11 @@ export default function FacturaDetailPage() {
           </div>
         </div>
       ) : (
-        // Preview Mode - styled HTML invoice
-        <div className="max-w-4xl mx-auto bg-white rounded-lg border border-neutral-200 print:border-none print:shadow-none p-8 print:p-0">
+        // Preview Mode - styled HTML invoice (A4 size: 210mm x 297mm)
+        <div
+          className="mx-auto bg-white rounded-lg border border-neutral-200 shadow-lg print:border-none print:shadow-none p-8 print:p-0 flex flex-col"
+          style={{ width: "210mm", minHeight: "297mm" }}
+        >
           {/* Invoice Header */}
           <div className="flex justify-between items-start mb-8">
             <img
@@ -663,23 +666,35 @@ export default function FacturaDetailPage() {
             </div>
           </div>
 
-          {/* Notes and Payment */}
-          <div className="space-y-4">
-            {factura.notas && (
+          {/* Notes and Payment - Al final de la página */}
+          <div className="space-y-4 mt-auto">
+            {/* {factura.notas && (
               <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
                 <h3 className="text-sm font-semibold text-amber-800 mb-1">
                   Notas
                 </h3>
                 <p className="text-sm text-amber-900">{factura.notas}</p>
               </div>
-            )}
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-              <h3 className="text-sm font-semibold text-green-800 mb-1">
-                Forma de pago
-              </h3>
-              <p className="text-sm text-green-900">
-                Transferencia bancaria a: {DATOS_EMPRESA.iban}
+            )} */}
+            <div className="bg-gray-50 border-l-4 border-gray-500 p-2 rounded flex flex-col gap-2 text-xs text-gray-700">
+              <p>
+                Responsable: Manuel Rodriguez Gomez - NIF: 33861402C -
+                Dir.Postal: Rua da Fraga, 1 Bjo. 27003 Lugo
               </p>
+              <p>
+                En nombre de la empresa tratamos la información que nos facilita
+                con el fin de prestarles el servicio solicitado, realizar la
+                facturación del mismo. Los datos proporcionados se conservarán
+                mientras se mantenga la relación comercial o durante los años
+                necesarios para cumplir con las obligaciones legales. Los datos
+                no se cederán a terceros salvo en los casos en que exista una
+                obligación legal. Usted tiene derecho a obtener confirmación
+                sobre si en Manuel Rodríguez Gómez estamos tratando sus datos
+                personales por tanto tiene derecho a acceder a sus datos
+                personales, rectificar los datos inexactos o solicitar su
+                supresión cuando los datos ya no sean necesarios.
+              </p>
+              <p>Transferencia bancaria a: {DATOS_EMPRESA.iban}</p>
             </div>
           </div>
         </div>

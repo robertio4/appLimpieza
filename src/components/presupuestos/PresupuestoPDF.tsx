@@ -6,6 +6,7 @@ import {
   Text,
   View,
   StyleSheet,
+  Image,
 } from "@react-pdf/renderer";
 import type { PresupuestoCompleto } from "@/types/database";
 import { DATOS_EMPRESA } from "@/lib/constants";
@@ -221,6 +222,18 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: "#1e40af",
   },
+  rgpdSection: {
+    padding: 8,
+    backgroundColor: "#f9fafb",
+    borderRadius: 4,
+    borderLeft: "3px solid #6b7280",
+    marginTop: 10,
+  },
+  rgpdText: {
+    fontSize: 7,
+    color: "#374151",
+    marginBottom: 4,
+  },
 });
 
 function formatCurrency(amount: number): string {
@@ -248,9 +261,8 @@ export function PresupuestoPDF({ presupuesto }: PresupuestoPDFProps) {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>LOGO</Text>
-          </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src="/logo.png" style={{ width: 80, height: 80 }} />
           <View style={styles.empresaInfo}>
             <Text style={styles.empresaNombre}>{DATOS_EMPRESA.nombre}</Text>
             <Text style={styles.empresaDato}>{DATOS_EMPRESA.direccion}</Text>
@@ -359,17 +371,21 @@ export function PresupuestoPDF({ presupuesto }: PresupuestoPDFProps) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          {presupuesto.notas && (
-            <View style={styles.notasSection}>
-              <Text style={styles.notasTitle}>Notas</Text>
-              <Text style={styles.notasText}>{presupuesto.notas}</Text>
-            </View>
-          )}
           <View style={styles.validezSection}>
             <Text style={styles.validezTitle}>Validez del presupuesto</Text>
             <Text style={styles.validezText}>
               Este presupuesto es válido hasta el {formatDate(presupuesto.fecha_validez)}.
-              {" "}Los precios y condiciones aquí reflejados están sujetos a cambios pasada la fecha de validez.
+            </Text>
+          </View>
+          <View style={styles.rgpdSection}>
+            <Text style={styles.rgpdText}>
+              Responsable: Manuel Rodriguez Gomez - NIF: 33861402C - Dir.Postal: Rua da Fraga, 1 Bjo. 27003 Lugo
+            </Text>
+            <Text style={styles.rgpdText}>
+              En nombre de la empresa tratamos la información que nos facilita con el fin de prestarles el servicio solicitado, realizar la facturación del mismo. Los datos proporcionados se conservarán mientras se mantenga la relación comercial o durante los años necesarios para cumplir con las obligaciones legales. Los datos no se cederán a terceros salvo en los casos en que exista una obligación legal. Usted tiene derecho a obtener confirmación sobre si en Manuel Rodríguez Gómez estamos tratando sus datos personales por tanto tiene derecho a acceder a sus datos personales, rectificar los datos inexactos o solicitar su supresión cuando los datos ya no sean necesarios.
+            </Text>
+            <Text style={styles.rgpdText}>
+              Transferencia bancaria a: {DATOS_EMPRESA.iban}
             </Text>
           </View>
         </View>

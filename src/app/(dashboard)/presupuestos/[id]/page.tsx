@@ -22,9 +22,20 @@ import {
   convertPresupuestoToFactura,
   duplicatePresupuesto,
 } from "@/lib/actions/presupuestos";
-import { formatCurrency, formatDate, estadoPresupuestoBadgeStyles, estadoPresupuestoBadgeColors, estadoPresupuestoLabels, isPresupuestoExpired } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  estadoPresupuestoBadgeStyles,
+  estadoPresupuestoBadgeColors,
+  estadoPresupuestoLabels,
+  isPresupuestoExpired,
+} from "@/lib/utils";
 import { DATOS_EMPRESA, IVA_PERCENTAGE } from "@/lib/constants";
-import type { PresupuestoCompleto, Cliente, EstadoPresupuesto } from "@/types/database";
+import type {
+  PresupuestoCompleto,
+  Cliente,
+  EstadoPresupuesto,
+} from "@/types/database";
 import {
   ArrowLeft,
   Loader2,
@@ -56,7 +67,9 @@ export default function PresupuestoDetailPage() {
   const router = useRouter();
   const presupuestoId = params.id as string;
 
-  const [presupuesto, setPresupuesto] = useState<PresupuestoCompleto | null>(null);
+  const [presupuesto, setPresupuesto] = useState<PresupuestoCompleto | null>(
+    null,
+  );
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,7 +119,10 @@ export default function PresupuestoDetailPage() {
     if (!presupuesto) return;
 
     // Don't allow editing if aceptado or rechazado
-    if (presupuesto.estado === "aceptado" || presupuesto.estado === "rechazado") {
+    if (
+      presupuesto.estado === "aceptado" ||
+      presupuesto.estado === "rechazado"
+    ) {
       showToast("No se puede editar un presupuesto aceptado o rechazado");
       return;
     }
@@ -121,7 +137,7 @@ export default function PresupuestoDetailPage() {
         concepto: l.concepto,
         cantidad: l.cantidad,
         precio_unitario: l.precio_unitario,
-      }))
+      })),
     );
     setIsEditing(true);
   };
@@ -146,7 +162,7 @@ export default function PresupuestoDetailPage() {
   const handleLineaChange = (
     id: string,
     field: keyof LineaForm,
-    value: string | number
+    value: string | number,
   ) => {
     setEditLineas(
       editLineas.map((l) => {
@@ -154,7 +170,7 @@ export default function PresupuestoDetailPage() {
           return { ...l, [field]: value };
         }
         return l;
-      })
+      }),
     );
   };
 
@@ -164,7 +180,7 @@ export default function PresupuestoDetailPage() {
 
   const editSubtotal = editLineas.reduce(
     (sum, linea) => sum + calculateLineaTotal(linea),
-    0
+    0,
   );
   const editIva = editSubtotal * (IVA_PERCENTAGE / 100);
   const editTotal = editSubtotal + editIva;
@@ -176,7 +192,7 @@ export default function PresupuestoDetailPage() {
     }
 
     const validLineas = editLineas.filter(
-      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0
+      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0,
     );
 
     if (validLineas.length === 0) {
@@ -289,8 +305,10 @@ export default function PresupuestoDetailPage() {
   }
 
   const isExpired = isPresupuestoExpired(presupuesto.fecha_validez);
-  const canEdit = presupuesto.estado !== "aceptado" && presupuesto.estado !== "rechazado";
-  const canConvert = presupuesto.estado === "pendiente" || presupuesto.estado === "expirado";
+  const canEdit =
+    presupuesto.estado !== "aceptado" && presupuesto.estado !== "rechazado";
+  const canConvert =
+    presupuesto.estado === "pendiente" || presupuesto.estado === "expirado";
 
   return (
     <div className="space-y-6">
@@ -313,7 +331,10 @@ export default function PresupuestoDetailPage() {
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   estadoPresupuestoBadgeStyles[presupuesto.estado]
                 }`}
-                style={{ backgroundColor: estadoPresupuestoBadgeColors[presupuesto.estado] }}
+                style={{
+                  backgroundColor:
+                    estadoPresupuestoBadgeColors[presupuesto.estado],
+                }}
               >
                 {estadoPresupuestoLabels[presupuesto.estado]}
               </span>
@@ -330,7 +351,10 @@ export default function PresupuestoDetailPage() {
         <div className="flex items-center gap-2">
           {!isEditing ? (
             <>
-              <PresupuestoActions presupuesto={presupuesto} onSuccess={loadPresupuesto} />
+              <PresupuestoActions
+                presupuesto={presupuesto}
+                onSuccess={loadPresupuesto}
+              />
               <Button variant="outline" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir
@@ -343,12 +367,18 @@ export default function PresupuestoDetailPage() {
               )}
               {canConvert && (
                 <Button onClick={handleConvertToFactura} disabled={isSaving}>
-                  {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {isSaving && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
                   <FileText className="h-4 w-4 mr-2" />
                   Convertir a Factura
                 </Button>
               )}
-              <Button variant="outline" onClick={handleDuplicate} disabled={isSaving}>
+              <Button
+                variant="outline"
+                onClick={handleDuplicate}
+                disabled={isSaving}
+              >
                 {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Copy className="h-4 w-4 mr-2" />
                 Duplicar
@@ -356,7 +386,9 @@ export default function PresupuestoDetailPage() {
               {presupuesto.estado === "pendiente" && (
                 <Select
                   value={presupuesto.estado}
-                  onValueChange={(v) => handleEstadoChange(v as EstadoPresupuesto)}
+                  onValueChange={(v) =>
+                    handleEstadoChange(v as EstadoPresupuesto)
+                  }
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue />
@@ -519,7 +551,7 @@ export default function PresupuestoDetailPage() {
                         handleLineaChange(
                           linea.id,
                           "cantidad",
-                          parseInt(e.target.value) || 0
+                          parseInt(e.target.value) || 0,
                         )
                       }
                     />
@@ -538,7 +570,7 @@ export default function PresupuestoDetailPage() {
                         handleLineaChange(
                           linea.id,
                           "precio_unitario",
-                          parseFloat(e.target.value) || 0
+                          parseFloat(e.target.value) || 0,
                         )
                       }
                     />
@@ -606,20 +638,31 @@ export default function PresupuestoDetailPage() {
           </div>
         </div>
       ) : (
-        // Preview Mode - styled HTML presupuesto
-        <div className="max-w-4xl mx-auto bg-white rounded-lg border border-neutral-200 print:border-none print:shadow-none p-8 print:p-0">
+        // Preview Mode - styled HTML presupuesto (A4 size: 210mm x 297mm)
+        <div
+          className="mx-auto bg-white rounded-lg border border-neutral-200 shadow-lg print:border-none print:shadow-none p-8 print:p-0 flex flex-col"
+          style={{ width: "210mm", minHeight: "297mm" }}
+        >
           {/* Presupuesto Header */}
           <div className="flex justify-between items-start mb-8">
-            <div className="w-20 h-20 bg-neutral-100 rounded flex items-center justify-center text-xs text-neutral-400">
-              LOGO
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-32 h-32 object-contain"
+            />
             <div className="text-right">
               <h2 className="text-lg font-bold text-neutral-900">
                 {DATOS_EMPRESA.nombre}
               </h2>
-              <p className="text-sm text-neutral-600">{DATOS_EMPRESA.direccion}</p>
-              <p className="text-sm text-neutral-600">NIF: {DATOS_EMPRESA.nif}</p>
-              <p className="text-sm text-neutral-600">Tel: {DATOS_EMPRESA.telefono}</p>
+              <p className="text-sm text-neutral-600">
+                {DATOS_EMPRESA.direccion}
+              </p>
+              <p className="text-sm text-neutral-600">
+                NIF: {DATOS_EMPRESA.nif}
+              </p>
+              <p className="text-sm text-neutral-600">
+                Tel: {DATOS_EMPRESA.telefono}
+              </p>
               <p className="text-sm text-neutral-600">{DATOS_EMPRESA.email}</p>
             </div>
           </div>
@@ -649,7 +692,9 @@ export default function PresupuestoDetailPage() {
                 </p>
               )}
               {presupuesto.cliente.email && (
-                <p className="text-sm text-neutral-600">{presupuesto.cliente.email}</p>
+                <p className="text-sm text-neutral-600">
+                  {presupuesto.cliente.email}
+                </p>
               )}
               {presupuesto.cliente.telefono && (
                 <p className="text-sm text-neutral-600">
@@ -672,7 +717,9 @@ export default function PresupuestoDetailPage() {
                 <span className="text-neutral-500">Validez: </span>
                 {formatDate(presupuesto.fecha_validez)}
                 {isExpired && (
-                  <span className="ml-2 text-amber-600 font-medium">(Expirado)</span>
+                  <span className="ml-2 text-amber-600 font-medium">
+                    (Expirado)
+                  </span>
                 )}
               </p>
             </div>
@@ -745,31 +792,35 @@ export default function PresupuestoDetailPage() {
             </div>
           </div>
 
-          {/* Notes and Validity */}
-          <div className="space-y-4">
-            {presupuesto.notas && (
+          {/* Notes and Payment - Al final de la página */}
+          <div className="space-y-4 mt-auto">
+            {/* {factura.notas && (
               <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
                 <h3 className="text-sm font-semibold text-amber-800 mb-1">
                   Notas
                 </h3>
-                <p className="text-sm text-amber-900">{presupuesto.notas}</p>
+                <p className="text-sm text-amber-900">{factura.notas}</p>
               </div>
-            )}
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-              <h3 className="text-sm font-semibold text-blue-800 mb-1">
-                Validez del presupuesto
-              </h3>
-              <p className="text-sm text-blue-900">
-                Este presupuesto es válido hasta el {formatDate(presupuesto.fecha_validez)}.
+            )} */}
+            <div className="bg-gray-50 border-l-4 border-gray-500 p-2 rounded flex flex-col gap-2 text-xs text-gray-700">
+              <p>
+                Responsable: Manuel Rodriguez Gomez - NIF: 33861402C -
+                Dir.Postal: Rua da Fraga, 1 Bjo. 27003 Lugo
               </p>
-            </div>
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-              <h3 className="text-sm font-semibold text-green-800 mb-1">
-                Forma de pago
-              </h3>
-              <p className="text-sm text-green-900">
-                Transferencia bancaria a: {DATOS_EMPRESA.iban}
+              <p>
+                En nombre de la empresa tratamos la información que nos facilita
+                con el fin de prestarles el servicio solicitado, realizar la
+                facturación del mismo. Los datos proporcionados se conservarán
+                mientras se mantenga la relación comercial o durante los años
+                necesarios para cumplir con las obligaciones legales. Los datos
+                no se cederán a terceros salvo en los casos en que exista una
+                obligación legal. Usted tiene derecho a obtener confirmación
+                sobre si en Manuel Rodríguez Gómez estamos tratando sus datos
+                personales por tanto tiene derecho a acceder a sus datos
+                personales, rectificar los datos inexactos o solicitar su
+                supresión cuando los datos ya no sean necesarios.
               </p>
+              <p>Transferencia bancaria a: {DATOS_EMPRESA.iban}</p>
             </div>
           </div>
         </div>
