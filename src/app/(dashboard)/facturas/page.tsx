@@ -40,7 +40,13 @@ import {
 import { generateRecurringInvoices } from "@/lib/actions/clientes";
 import { pdf } from "@react-pdf/renderer";
 import { FacturaPDF } from "@/components/facturas/FacturaPDF";
-import { formatCurrency, formatDate, estadoBadgeStyles, estadoBadgeColors, estadoLabels } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  estadoBadgeStyles,
+  estadoBadgeColors,
+  estadoLabels,
+} from "@/lib/utils";
 import { DATOS_EMPRESA } from "@/lib/constants";
 import type {
   FacturaConCliente,
@@ -78,7 +84,11 @@ export default function FacturasPage() {
   // Recurring invoices
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState<{
-    generated: Array<{ cliente_nombre: string; factura_numero: string; factura_id: string }>;
+    generated: Array<{
+      cliente_nombre: string;
+      factura_numero: string;
+      factura_id: string;
+    }>;
     skipped: Array<{ cliente_nombre: string; reason: string }>;
     errors: Array<{ cliente_nombre: string; error: string }>;
   } | null>(null);
@@ -86,9 +96,15 @@ export default function FacturasPage() {
 
   // Period download
   const [showPeriodDialog, setShowPeriodDialog] = useState(false);
-  const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">("month");
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">(
+    "month",
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString(),
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    (new Date().getMonth() + 1).toString(),
+  );
   const [selectedQuarter, setSelectedQuarter] = useState("1");
   const [isDownloadingPeriod, setIsDownloadingPeriod] = useState(false);
 
@@ -116,15 +132,20 @@ export default function FacturasPage() {
 
     try {
       const hasFilters =
-        !!filterStartDate || !!filterEndDate || (!!filterEstado && filterEstado !== "all") || (!!filterCliente && filterCliente !== "all");
+        !!filterStartDate ||
+        !!filterEndDate ||
+        (!!filterEstado && filterEstado !== "all") ||
+        (!!filterCliente && filterCliente !== "all");
 
       let result;
       if (hasFilters) {
         result = await getFacturasByFilters(
           filterStartDate || undefined,
           filterEndDate || undefined,
-          filterEstado && filterEstado !== "all" ? (filterEstado as EstadoFactura) : undefined,
-          filterCliente && filterCliente !== "all" ? filterCliente : undefined
+          filterEstado && filterEstado !== "all"
+            ? (filterEstado as EstadoFactura)
+            : undefined,
+          filterCliente && filterCliente !== "all" ? filterCliente : undefined,
         );
       } else {
         result = await getFacturas();
@@ -208,7 +229,7 @@ export default function FacturasPage() {
       // Open Gmail
       const clienteEmail = factura.cliente.email || "";
       const subject = encodeURIComponent(
-        `Factura ${factura.numero} - ${DATOS_EMPRESA.nombre}`
+        `Factura ${factura.numero} - ${DATOS_EMPRESA.nombre}`,
       );
       const body = encodeURIComponent(
         `Estimado/a ${factura.cliente.nombre},\n\n` +
@@ -216,12 +237,12 @@ export default function FacturasPage() {
           `Importe total: ${formatCurrency(factura.total)}\n\n` +
           `Por favor, realice el pago mediante transferencia a:\n` +
           `${DATOS_EMPRESA.iban}\n\n` +
-          `Atentamente,\n${DATOS_EMPRESA.nombre}`
+          `Atentamente,\n${DATOS_EMPRESA.nombre}`,
       );
 
       window.open(
         `https://mail.google.com/mail/?view=cm&fs=1&to=${clienteEmail}&su=${subject}&body=${body}`,
-        "_blank"
+        "_blank",
       );
 
       showToast("PDF descargado. Por favor, adjunta el archivo en Gmail.");
@@ -274,7 +295,11 @@ export default function FacturasPage() {
     setFilterCliente("");
   };
 
-  const hasActiveFilters = filterStartDate || filterEndDate || (filterEstado && filterEstado !== "all") || (filterCliente && filterCliente !== "all");
+  const hasActiveFilters =
+    filterStartDate ||
+    filterEndDate ||
+    (filterEstado && filterEstado !== "all") ||
+    (filterCliente && filterCliente !== "all");
 
   const handleGenerateRecurring = async () => {
     setIsGenerating(true);
@@ -322,7 +347,12 @@ export default function FacturasPage() {
       }
 
       // Get facturas for the period
-      const result = await getFacturasByFilters(startDate, endDate, undefined, undefined);
+      const result = await getFacturasByFilters(
+        startDate,
+        endDate,
+        undefined,
+        undefined,
+      );
       if (!result.success || result.data.length === 0) {
         showToast("No hay facturas en el período seleccionado");
         setIsDownloadingPeriod(false);
@@ -348,17 +378,22 @@ export default function FacturasPage() {
                 return null;
               }
 
-              const pdfBlob = await pdf(<FacturaPDF factura={facturaCompleta.data} />).toBlob();
+              const pdfBlob = await pdf(
+                <FacturaPDF factura={facturaCompleta.data} />,
+              ).toBlob();
 
               return {
                 filename: `Factura-${facturaCompleta.data.numero}.pdf`,
                 blob: pdfBlob,
               };
             } catch (error) {
-              console.error(`Error generando PDF para factura ${factura.id}:`, error);
+              console.error(
+                `Error generando PDF para factura ${factura.id}:`,
+                error,
+              );
               return null;
             }
-          })
+          }),
         );
 
         for (const resultItem of batchResults) {
@@ -378,7 +413,20 @@ export default function FacturasPage() {
       // Generate filename based on period
       let filename: string;
       if (periodType === "month") {
-        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const monthNames = [
+          "Enero",
+          "Febrero",
+          "Marzo",
+          "Abril",
+          "Mayo",
+          "Junio",
+          "Julio",
+          "Agosto",
+          "Septiembre",
+          "Octubre",
+          "Noviembre",
+          "Diciembre",
+        ];
         filename = `Facturas-${monthNames[parseInt(selectedMonth) - 1]}-${selectedYear}.zip`;
       } else if (periodType === "quarter") {
         filename = `Facturas-Q${selectedQuarter}-${selectedYear}.zip`;
@@ -411,12 +459,9 @@ export default function FacturasPage() {
           <p className="text-neutral-600">Gestiona tus facturas</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={() => setShowPeriodDialog(true)}
-            variant="outline"
-          >
+          <Button onClick={() => setShowPeriodDialog(true)} variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            Descargar por Período
+            Descargar por fecha
           </Button>
           <Button
             onClick={handleGenerateRecurring}
@@ -450,11 +495,7 @@ export default function FacturasPage() {
             <span className="font-medium text-neutral-700">Filtros</span>
           </div>
           {hasActiveFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClearFilters}
-            >
+            <Button variant="outline" size="sm" onClick={handleClearFilters}>
               <X className="h-4 w-4 mr-2" />
               Limpiar filtros
             </Button>
@@ -578,11 +619,19 @@ export default function FacturasPage() {
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                           estadoBadgeStyles[factura.estado]
                         }`}
-                        style={{ backgroundColor: estadoBadgeColors[factura.estado] }}
+                        style={{
+                          backgroundColor: estadoBadgeColors[factura.estado],
+                        }}
                       >
-                        {factura.estado === "borrador" && <FileEdit className="h-3.5 w-3.5" />}
-                        {factura.estado === "enviada" && <Send className="h-3.5 w-3.5" />}
-                        {factura.estado === "pagada" && <CircleCheck className="h-3.5 w-3.5" />}
+                        {factura.estado === "borrador" && (
+                          <FileEdit className="h-3.5 w-3.5" />
+                        )}
+                        {factura.estado === "enviada" && (
+                          <Send className="h-3.5 w-3.5" />
+                        )}
+                        {factura.estado === "pagada" && (
+                          <CircleCheck className="h-3.5 w-3.5" />
+                        )}
                         {estadoLabels[factura.estado]}
                       </span>
                     </td>
@@ -720,9 +769,7 @@ export default function FacturasPage() {
             </div>
 
             <DialogFooter>
-              <Button onClick={() => setShowResultDialog(false)}>
-                Cerrar
-              </Button>
+              <Button onClick={() => setShowResultDialog(false)}>Cerrar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -734,14 +781,20 @@ export default function FacturasPage() {
           <DialogHeader>
             <DialogTitle>Descargar Facturas por Período</DialogTitle>
             <DialogDescription>
-              Selecciona el período para descargar todas las facturas en un archivo ZIP
+              Selecciona el período para descargar todas las facturas en un
+              archivo ZIP
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="period-type">Tipo de período</Label>
-              <Select value={periodType} onValueChange={(value) => setPeriodType(value as "month" | "quarter" | "year")}>
+              <Select
+                value={periodType}
+                onValueChange={(value) =>
+                  setPeriodType(value as "month" | "quarter" | "year")
+                }
+              >
                 <SelectTrigger id="period-type">
                   <SelectValue />
                 </SelectTrigger>
@@ -757,7 +810,10 @@ export default function FacturasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="month">Mes</Label>
-                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <Select
+                    value={selectedMonth}
+                    onValueChange={setSelectedMonth}
+                  >
                     <SelectTrigger id="month">
                       <SelectValue />
                     </SelectTrigger>
@@ -784,7 +840,10 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                      {Array.from(
+                        { length: 5 },
+                        (_, i) => new Date().getFullYear() - i,
+                      ).map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -799,7 +858,10 @@ export default function FacturasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quarter">Trimestre</Label>
-                  <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
+                  <Select
+                    value={selectedQuarter}
+                    onValueChange={setSelectedQuarter}
+                  >
                     <SelectTrigger id="quarter">
                       <SelectValue />
                     </SelectTrigger>
@@ -818,7 +880,10 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                      {Array.from(
+                        { length: 5 },
+                        (_, i) => new Date().getFullYear() - i,
+                      ).map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -837,7 +902,10 @@ export default function FacturasPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                    {Array.from(
+                      { length: 5 },
+                      (_, i) => new Date().getFullYear() - i,
+                    ).map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>
@@ -857,7 +925,10 @@ export default function FacturasPage() {
             >
               Cancelar
             </Button>
-            <Button onClick={handleDownloadPeriod} disabled={isDownloadingPeriod}>
+            <Button
+              onClick={handleDownloadPeriod}
+              disabled={isDownloadingPeriod}
+            >
               {isDownloadingPeriod ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

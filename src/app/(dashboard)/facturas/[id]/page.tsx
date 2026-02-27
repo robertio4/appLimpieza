@@ -20,7 +20,13 @@ import {
   updateEstadoFactura,
   getClientes,
 } from "@/lib/actions/facturas";
-import { formatCurrency, formatDate, estadoBadgeStyles, estadoBadgeColors, estadoLabels } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  estadoBadgeStyles,
+  estadoBadgeColors,
+  estadoLabels,
+} from "@/lib/utils";
 import { DATOS_EMPRESA, IVA_PERCENTAGE } from "@/lib/constants";
 import type { FacturaCompleta, Cliente, EstadoFactura } from "@/types/database";
 import {
@@ -108,7 +114,7 @@ export default function FacturaDetailPage() {
         concepto: l.concepto,
         cantidad: l.cantidad,
         precio_unitario: l.precio_unitario,
-      }))
+      })),
     );
     setIsEditing(true);
   };
@@ -133,7 +139,7 @@ export default function FacturaDetailPage() {
   const handleLineaChange = (
     id: string,
     field: keyof LineaForm,
-    value: string | number
+    value: string | number,
   ) => {
     setEditLineas(
       editLineas.map((l) => {
@@ -141,7 +147,7 @@ export default function FacturaDetailPage() {
           return { ...l, [field]: value };
         }
         return l;
-      })
+      }),
     );
   };
 
@@ -151,7 +157,7 @@ export default function FacturaDetailPage() {
 
   const editSubtotal = editLineas.reduce(
     (sum, linea) => sum + calculateLineaTotal(linea),
-    0
+    0,
   );
   const editIva = editSubtotal * (IVA_PERCENTAGE / 100);
   const editTotal = editSubtotal + editIva;
@@ -163,7 +169,7 @@ export default function FacturaDetailPage() {
     }
 
     const validLineas = editLineas.filter(
-      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0
+      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0,
     );
 
     if (validLineas.length === 0) {
@@ -422,7 +428,7 @@ export default function FacturaDetailPage() {
                         handleLineaChange(
                           linea.id,
                           "cantidad",
-                          parseInt(e.target.value) || 0
+                          parseInt(e.target.value) || 0,
                         )
                       }
                     />
@@ -441,7 +447,7 @@ export default function FacturaDetailPage() {
                         handleLineaChange(
                           linea.id,
                           "precio_unitario",
-                          parseFloat(e.target.value) || 0
+                          parseFloat(e.target.value) || 0,
                         )
                       }
                     />
@@ -513,16 +519,24 @@ export default function FacturaDetailPage() {
         <div className="max-w-4xl mx-auto bg-white rounded-lg border border-neutral-200 print:border-none print:shadow-none p-8 print:p-0">
           {/* Invoice Header */}
           <div className="flex justify-between items-start mb-8">
-            <div className="w-20 h-20 bg-neutral-100 rounded flex items-center justify-center text-xs text-neutral-400">
-              LOGO
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-32 h-32 object-contain"
+            />
             <div className="text-right">
               <h2 className="text-lg font-bold text-neutral-900">
                 {DATOS_EMPRESA.nombre}
               </h2>
-              <p className="text-sm text-neutral-600">{DATOS_EMPRESA.direccion}</p>
-              <p className="text-sm text-neutral-600">NIF: {DATOS_EMPRESA.nif}</p>
-              <p className="text-sm text-neutral-600">Tel: {DATOS_EMPRESA.telefono}</p>
+              <p className="text-sm text-neutral-600">
+                {DATOS_EMPRESA.direccion}
+              </p>
+              <p className="text-sm text-neutral-600">
+                NIF: {DATOS_EMPRESA.nif}
+              </p>
+              <p className="text-sm text-neutral-600">
+                Tel: {DATOS_EMPRESA.telefono}
+              </p>
               <p className="text-sm text-neutral-600">{DATOS_EMPRESA.email}</p>
             </div>
           </div>
@@ -552,7 +566,9 @@ export default function FacturaDetailPage() {
                 </p>
               )}
               {factura.cliente.email && (
-                <p className="text-sm text-neutral-600">{factura.cliente.email}</p>
+                <p className="text-sm text-neutral-600">
+                  {factura.cliente.email}
+                </p>
               )}
               {factura.cliente.telefono && (
                 <p className="text-sm text-neutral-600">

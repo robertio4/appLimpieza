@@ -6,6 +6,7 @@ import {
   Text,
   View,
   StyleSheet,
+  Image,
 } from "@react-pdf/renderer";
 import type { FacturaCompleta } from "@/types/database";
 import { DATOS_EMPRESA } from "@/lib/constants";
@@ -248,9 +249,8 @@ export function FacturaPDF({ factura }: FacturaPDFProps) {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>LOGO</Text>
-          </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src="/logo.png" style={{ width: 80, height: 80 }} />
           <View style={styles.empresaInfo}>
             <Text style={styles.empresaNombre}>{DATOS_EMPRESA.nombre}</Text>
             <Text style={styles.empresaDato}>{DATOS_EMPRESA.direccion}</Text>
