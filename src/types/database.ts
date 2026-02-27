@@ -30,6 +30,8 @@ export interface Database {
           direccion: string | null;
           nif: string | null;
           notas: string | null;
+          facturacion_recurrente: boolean;
+          dia_facturacion: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -42,6 +44,8 @@ export interface Database {
           direccion?: string | null;
           nif?: string | null;
           notas?: string | null;
+          facturacion_recurrente?: boolean;
+          dia_facturacion?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -54,6 +58,8 @@ export interface Database {
           direccion?: string | null;
           nif?: string | null;
           notas?: string | null;
+          facturacion_recurrente?: boolean;
+          dia_facturacion?: number | null;
           created_at?: string;
           updated_at?: string;
         };

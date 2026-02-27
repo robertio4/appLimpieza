@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createCliente, updateCliente } from "@/lib/actions/clientes";
 import type { Cliente } from "@/types/database";
 
@@ -35,6 +36,8 @@ export function ClienteForm({
   const [direccion, setDireccion] = useState("");
   const [nif, setNif] = useState("");
   const [notas, setNotas] = useState("");
+  const [facturacionRecurrente, setFacturacionRecurrente] = useState(false);
+  const [diaFacturacion, setDiaFacturacion] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +51,8 @@ export function ClienteForm({
       setDireccion(cliente.direccion || "");
       setNif(cliente.nif || "");
       setNotas(cliente.notas || "");
+      setFacturacionRecurrente(cliente.facturacion_recurrente || false);
+      setDiaFacturacion(cliente.dia_facturacion || null);
     } else {
       setNombre("");
       setEmail("");
@@ -55,6 +60,8 @@ export function ClienteForm({
       setDireccion("");
       setNif("");
       setNotas("");
+      setFacturacionRecurrente(false);
+      setDiaFacturacion(null);
     }
     setError(null);
   }, [cliente, open]);
@@ -74,6 +81,14 @@ export function ClienteForm({
       return;
     }
 
+    // Validate dia_facturacion if facturacion_recurrente is true
+    if (facturacionRecurrente) {
+      if (!diaFacturacion || diaFacturacion < 1 || diaFacturacion > 31) {
+        setError("El día de facturación debe estar entre 1 y 31");
+        return;
+      }
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -85,6 +100,8 @@ export function ClienteForm({
         direccion: direccion.trim() || null,
         nif: nif.trim() || null,
         notas: notas.trim() || null,
+        facturacion_recurrente: facturacionRecurrente,
+        dia_facturacion: facturacionRecurrente ? diaFacturacion : null,
       };
 
       if (isEditing) {
@@ -200,6 +217,51 @@ export function ClienteForm({
                 disabled={isLoading}
                 rows={3}
               />
+            </div>
+
+            {/* Facturación Recurrente */}
+            <div className="space-y-4 pt-4 border-t border-neutral-200">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="facturacion-recurrente"
+                  checked={facturacionRecurrente}
+                  onCheckedChange={(checked) =>
+                    setFacturacionRecurrente(checked === true)
+                  }
+                  disabled={isLoading}
+                />
+                <Label
+                  htmlFor="facturacion-recurrente"
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Facturación recurrente mensual
+                </Label>
+              </div>
+
+              {facturacionRecurrente && (
+                <div className="space-y-2 pl-6">
+                  <Label htmlFor="dia-facturacion">
+                    Día de facturación del mes{" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="dia-facturacion"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={diaFacturacion || ""}
+                    onChange={(e) =>
+                      setDiaFacturacion(parseInt(e.target.value) || null)
+                    }
+                    placeholder="Ej: 1, 15, 30"
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-neutral-500">
+                    Día del mes en que se generará automáticamente la factura
+                    (1-31)
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

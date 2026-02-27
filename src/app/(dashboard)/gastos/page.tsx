@@ -137,7 +137,7 @@ export default function GastosPage() {
 
   const total = gastos.reduce((sum, gasto) => sum + gasto.importe, 0);
   const hasActiveFilters =
-    (!!filterStartDate && !!filterEndDate) ||
+    !!filterStartDate || !!filterEndDate ||
     (!!filterCategoria && filterCategoria !== "all");
 
   return (
