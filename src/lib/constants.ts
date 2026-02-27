@@ -2,11 +2,11 @@
  * Company data configuration for invoices
  */
 export const DATOS_EMPRESA = {
-  nombre: "Mi Empresa de Limpieza S.L.",
-  direccion: "Calle Principal 123, 28001 Madrid",
+  nombre: "Limpiezas Roferlim",
+  direccion: "Rua da Fraga, 2 - 1º Dcha, 27003 Lugo",
   nif: "B12345678",
-  telefono: "+34 600 000 000",
-  email: "info@miempresa.com",
+  telefono: "600 418 963",
+  email: "manurggr@gmail.com",
   iban: "ES12 1234 5678 9012 3456 7890",
 };
 
