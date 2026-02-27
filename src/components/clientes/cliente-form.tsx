@@ -226,7 +226,7 @@ export function ClienteForm({
                   id="facturacion-recurrente"
                   checked={facturacionRecurrente}
                   onCheckedChange={(checked) =>
-                    setFacturacionRecurrente(checked as boolean)
+                    setFacturacionRecurrente(checked === true)
                   }
                   disabled={isLoading}
                 />

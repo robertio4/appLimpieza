@@ -252,7 +252,7 @@ async function hasInvoiceInMonth(
 
   if (error) {
     console.error("Error checking invoice in month:", error);
-    return false;
+    throw new Error("Error checking existing invoices for client in month");
   }
 
   return (data && data.length > 0) || false;
@@ -291,6 +291,10 @@ async function getLastClientInvoice(
 
   if (error) {
     console.error("Error getting last client invoice:", error);
+    throw error;
+  }
+
+  if (!data) {
     return null;
   }
 
@@ -385,8 +389,14 @@ export async function generateRecurringInvoices(
           continue;
         }
 
-        // Calcular fecha de la nueva factura (fecha actual)
-        const newInvoiceDate = now.toISOString().split("T")[0];
+        // Calcular fecha de la nueva factura usando el mes/año objetivo y el día de facturación del cliente
+        // dia_facturacion is guaranteed non-null here due to the guard above
+        const lastDayOfMonth = new Date(year, month, 0).getDate();
+        const billingDay = cliente.dia_facturacion!;
+        const effectiveDay = Math.min(billingDay, lastDayOfMonth);
+        const monthStr = String(month).padStart(2, "0");
+        const dayStr = String(effectiveDay).padStart(2, "0");
+        const newInvoiceDate = `${year}-${monthStr}-${dayStr}`;
 
         // Calcular fecha de vencimiento (mismo plazo que última factura)
         const fechaVencimiento = calculateDueDate(

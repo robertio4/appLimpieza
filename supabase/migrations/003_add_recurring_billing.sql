@@ -4,8 +4,13 @@
 
 -- Agregar campos de facturación recurrente a tabla clientes
 ALTER TABLE clientes
-ADD COLUMN facturacion_recurrente BOOLEAN DEFAULT FALSE,
-ADD COLUMN dia_facturacion INTEGER CHECK (dia_facturacion >= 1 AND dia_facturacion <= 31);
+ADD COLUMN facturacion_recurrente BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN dia_facturacion INTEGER,
+ADD CONSTRAINT clientes_facturacion_recurrente_check
+  CHECK (
+    facturacion_recurrente = FALSE
+    OR (dia_facturacion IS NOT NULL AND dia_facturacion >= 1 AND dia_facturacion <= 31)
+  );
 
 -- Índice para búsquedas eficientes de clientes recurrentes
 -- Solo indexa clientes con facturacion_recurrente = TRUE para optimizar

@@ -188,7 +188,9 @@ export default function ClientesPage() {
                   <div className="mt-2">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
                       <CalendarClock className="h-3.5 w-3.5" />
-                      Facturación mensual (día {cliente.dia_facturacion})
+                      {cliente.dia_facturacion != null
+                        ? `Facturación mensual (día ${cliente.dia_facturacion})`
+                        : "Facturación mensual (día no definido)"}
                     </span>
                   </div>
                 )}
