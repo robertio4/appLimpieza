@@ -274,7 +274,7 @@ export default function FacturasPage() {
     setFilterCliente("");
   };
 
-  const hasActiveFilters = filterStartDate || filterEndDate || filterEstado || filterCliente;
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterEstado || filterCliente);
 
   const handleGenerateRecurring = async () => {
     setIsGenerating(true);
@@ -287,6 +287,9 @@ export default function FacturasPage() {
       } else {
         showToast(result.error);
       }
+    } catch (error) {
+      console.error("Error generating recurring invoices:", error);
+      showToast("Error al generar facturas recurrentes");
     } finally {
       setIsGenerating(false);
     }
@@ -329,19 +332,40 @@ export default function FacturasPage() {
       const facturasToDownload = result.data;
       const zip = new JSZip();
 
-      // Generate PDFs for all invoices in the period
-      for (const factura of facturasToDownload) {
-        try {
-          const facturaCompleta = await getFacturaCompleta(factura.id);
-          if (!facturaCompleta.success) {
-            console.error(`Error al obtener factura ${factura.id}`);
-            continue;
-          }
+      // Generate PDFs for all invoices in the period with bounded concurrency
+      const CONCURRENCY_LIMIT = 3;
+      let addedCount = 0;
 
-          const pdfBlob = await pdf(<FacturaPDF factura={facturaCompleta.data} />).toBlob();
-          zip.file(`Factura-${facturaCompleta.data.numero}.pdf`, pdfBlob);
-        } catch (error) {
-          console.error(`Error generando PDF para factura ${factura.id}:`, error);
+      for (let i = 0; i < facturasToDownload.length; i += CONCURRENCY_LIMIT) {
+        const batch = facturasToDownload.slice(i, i + CONCURRENCY_LIMIT);
+
+        const batchResults = await Promise.all(
+          batch.map(async (factura) => {
+            try {
+              const facturaCompleta = await getFacturaCompleta(factura.id);
+              if (!facturaCompleta.success) {
+                console.error(`Error al obtener factura ${factura.id}`);
+                return null;
+              }
+
+              const pdfBlob = await pdf(<FacturaPDF factura={facturaCompleta.data} />).toBlob();
+
+              return {
+                filename: `Factura-${facturaCompleta.data.numero}.pdf`,
+                blob: pdfBlob,
+              };
+            } catch (error) {
+              console.error(`Error generando PDF para factura ${factura.id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        for (const resultItem of batchResults) {
+          if (resultItem) {
+            zip.file(resultItem.filename, resultItem.blob);
+            addedCount++;
+          }
         }
       }
 
@@ -368,7 +392,7 @@ export default function FacturasPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      showToast(`${facturasToDownload.length} facturas descargadas correctamente`);
+      showToast(`${addedCount} facturas descargadas correctamente`);
       setShowPeriodDialog(false);
     } catch (error) {
       console.error("Error generando ZIP:", error);
