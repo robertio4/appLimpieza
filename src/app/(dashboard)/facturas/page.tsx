@@ -85,7 +85,7 @@ export default function FacturasPage() {
 
     try {
       const hasFilters =
-        filterStartDate || (filterEndDate || (filterEstado && filterEstado !== "all") || (filterCliente && filterCliente !== "all"));
+        !!filterStartDate || !!filterEndDate || (!!filterEstado && filterEstado !== "all") || (!!filterCliente && filterCliente !== "all");
 
       let result;
       if (hasFilters) {
