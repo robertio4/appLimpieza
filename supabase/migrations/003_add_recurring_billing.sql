@@ -8,14 +8,14 @@ ADD COLUMN facturacion_recurrente BOOLEAN NOT NULL DEFAULT FALSE,
 ADD COLUMN dia_facturacion INTEGER,
 ADD CONSTRAINT clientes_facturacion_recurrente_check
   CHECK (
-    facturacion_recurrente = FALSE
-    OR (dia_facturacion IS NOT NULL AND dia_facturacion >= 1 AND dia_facturacion <= 31)
+    (facturacion_recurrente = FALSE AND dia_facturacion IS NULL)
+    OR (facturacion_recurrente = TRUE AND dia_facturacion IS NOT NULL AND dia_facturacion >= 1 AND dia_facturacion <= 31)
   );
 
 -- Índice para búsquedas eficientes de clientes recurrentes
 -- Solo indexa clientes con facturacion_recurrente = TRUE para optimizar
 CREATE INDEX idx_clientes_facturacion_recurrente
-ON clientes(user_id, facturacion_recurrente)
+ON clientes(user_id, dia_facturacion)
 WHERE facturacion_recurrente = TRUE;
 
 -- Comentarios para documentación

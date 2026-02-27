@@ -231,10 +231,9 @@ async function hasInvoiceInMonth(
   clienteId: string,
   userId: string,
   month: number,
-  year: number
+  year: number,
+  supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<boolean> {
-  const supabase = await createClient();
-
   // Fechas de inicio y fin del mes
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const nextMonth = month === 12 ? 1 : month + 1;
@@ -263,10 +262,9 @@ async function hasInvoiceInMonth(
  */
 async function getLastClientInvoice(
   clienteId: string,
-  userId: string
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<FacturaCompletaConLineas | null> {
-  const supabase = await createClient();
-
   const { data, error } = await supabase
     .from("facturas")
     .select(
@@ -287,7 +285,7 @@ async function getLastClientInvoice(
     .eq("user_id", userId)
     .order("fecha", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Error getting last client invoice:", error);
@@ -315,10 +313,26 @@ export async function generateRecurringInvoices(
       return createErrorResult(authError);
     }
 
-    // Usar mes/año actual si no se especifica
+    // Validar mes/año objetivo y usar mes/año actual si no se especifica
+    if (
+      typeof targetMonth !== "undefined" &&
+      (!Number.isInteger(targetMonth) || targetMonth < 1 || targetMonth > 12)
+    ) {
+      return createErrorResult("Mes objetivo inválido. Debe estar entre 1 y 12.");
+    }
+
+    if (
+      typeof targetYear !== "undefined" &&
+      (!Number.isInteger(targetYear) || targetYear < 1900 || targetYear > 3000)
+    ) {
+      return createErrorResult(
+        "Año objetivo inválido. Debe ser un número entero entre 1900 y 3000."
+      );
+    }
+
     const now = new Date();
-    const month = targetMonth || now.getMonth() + 1;
-    const year = targetYear || now.getFullYear();
+    const month = targetMonth ?? now.getMonth() + 1;
+    const year = targetYear ?? now.getFullYear();
 
     const result: RecurringInvoiceResult = {
       generated: [],
@@ -328,6 +342,10 @@ export async function generateRecurringInvoices(
 
     // Obtener clientes con facturación recurrente
     const supabase = await createClient();
+
+    // Importar createFactura una sola vez fuera del bucle para evitar dependencias circulares
+    const { createFactura } = await import("@/lib/actions/facturas");
+
     const { data: clientes, error: clientesError } = await supabase
       .from("clientes")
       .select("id, nombre, facturacion_recurrente, dia_facturacion")
@@ -359,7 +377,8 @@ export async function generateRecurringInvoices(
           cliente.id,
           user.id,
           month,
-          year
+          year,
+          supabase
         );
 
         if (hasInvoice) {
@@ -371,7 +390,7 @@ export async function generateRecurringInvoices(
         }
 
         // Obtener última factura del cliente
-        const lastInvoice = await getLastClientInvoice(cliente.id, user.id);
+        const lastInvoice = await getLastClientInvoice(cliente.id, user.id, supabase);
 
         if (!lastInvoice) {
           result.skipped.push({
@@ -411,10 +430,6 @@ export async function generateRecurringInvoices(
           notas += "\n\n";
         }
         notas += `Generado automáticamente desde factura ${lastInvoice.numero}`;
-
-        // Crear nueva factura usando la función existente de facturas.ts
-        // Importamos dinámicamente para evitar dependencias circulares
-        const { createFactura } = await import("@/lib/actions/facturas");
 
         const facturaData = {
           cliente_id: cliente.id,

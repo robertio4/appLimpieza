@@ -299,7 +299,7 @@ export default function PresupuestosPage() {
     setFilterCliente("");
   };
 
-  const hasActiveFilters = filterStartDate || filterEndDate || filterEstado || filterCliente;
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterEstado || filterCliente);
 
   return (
     <div className="space-y-6">

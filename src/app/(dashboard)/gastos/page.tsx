@@ -125,7 +125,7 @@ export default function GastosPage() {
     setFilterCategoria("");
   };
 
-  const hasActiveFilters = filterStartDate || filterEndDate || filterCategoria;
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterCategoria);
 
   const handleCategoriasChange = async () => {
     const result = await getCategorias();
