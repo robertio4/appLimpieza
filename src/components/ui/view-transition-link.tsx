@@ -19,16 +19,34 @@ export function ViewTransitionLink({
       onClick(e);
     }
 
+    if (e.defaultPrevented) {
+      return;
+    }
+
     // Solo aplicar View Transition para navegación interna
-    if (typeof href === "string" && href.startsWith("/")) {
+    // en clics simples con botón izquierdo, sin modificadores
+    // y sin atributos especiales como target o download.
+    const isInternalLink = typeof href === "string" && href.startsWith("/");
+    const isLeftClick = e.button === 0;
+    const hasModifier = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+    const hasSpecialTarget = props.target && props.target !== "_self";
+    const hasDownload = props.download;
+
+    if (isInternalLink && isLeftClick && !hasModifier && !hasSpecialTarget && !hasDownload) {
       e.preventDefault();
 
+      const navigate = () => {
+        if (props.replace) {
+          router.replace(href, { scroll: props.scroll });
+        } else {
+          router.push(href, { scroll: props.scroll });
+        }
+      };
+
       if (document.startViewTransition) {
-        document.startViewTransition(() => {
-          router.push(href);
-        });
+        document.startViewTransition(navigate);
       } else {
-        router.push(href);
+        navigate();
       }
     }
   };

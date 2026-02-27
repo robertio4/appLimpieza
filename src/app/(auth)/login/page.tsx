@@ -73,13 +73,13 @@ export default function LoginPage() {
         } else {
           setError(authError.message);
         }
-        setIsLoading(false);
         return;
       }
 
       navigate("/dashboard");
     } catch {
       setError("Ocurrió un error inesperado. Inténtalo de nuevo.");
+    } finally {
       setIsLoading(false);
     }
   };
