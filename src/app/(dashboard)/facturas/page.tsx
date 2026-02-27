@@ -116,15 +116,15 @@ export default function FacturasPage() {
 
     try {
       const hasFilters =
-        filterStartDate || filterEndDate || filterEstado || filterCliente;
+        !!filterStartDate || !!filterEndDate || (!!filterEstado && filterEstado !== "all") || (!!filterCliente && filterCliente !== "all");
 
       let result;
       if (hasFilters) {
         result = await getFacturasByFilters(
           filterStartDate || undefined,
           filterEndDate || undefined,
-          filterEstado ? (filterEstado as EstadoFactura) : undefined,
-          filterCliente || undefined
+          filterEstado && filterEstado !== "all" ? (filterEstado as EstadoFactura) : undefined,
+          filterCliente && filterCliente !== "all" ? filterCliente : undefined
         );
       } else {
         result = await getFacturas();
@@ -274,7 +274,7 @@ export default function FacturasPage() {
     setFilterCliente("");
   };
 
-  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterEstado || filterCliente);
+  const hasActiveFilters = filterStartDate || filterEndDate || (filterEstado && filterEstado !== "all") || (filterCliente && filterCliente !== "all");
 
   const handleGenerateRecurring = async () => {
     setIsGenerating(true);

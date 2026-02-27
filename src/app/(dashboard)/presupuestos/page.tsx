@@ -91,15 +91,15 @@ export default function PresupuestosPage() {
 
     try {
       const hasFilters =
-        filterStartDate || filterEndDate || filterEstado || filterCliente;
+        filterStartDate || filterEndDate || (filterEstado && filterEstado !== "all") || (filterCliente && filterCliente !== "all");
 
       let result;
       if (hasFilters) {
         result = await getPresupuestosByFilters(
           filterStartDate || undefined,
           filterEndDate || undefined,
-          filterEstado ? (filterEstado as EstadoPresupuesto) : undefined,
-          filterCliente || undefined
+          filterEstado && filterEstado !== "all" ? (filterEstado as EstadoPresupuesto) : undefined,
+          filterCliente && filterCliente !== "all" ? filterCliente : undefined
         );
       } else {
         result = await getPresupuestos();
@@ -299,7 +299,7 @@ export default function PresupuestosPage() {
     setFilterCliente("");
   };
 
-  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterEstado || filterCliente);
+  const hasActiveFilters = filterStartDate || filterEndDate || (filterEstado && filterEstado !== "all") || (filterCliente && filterCliente !== "all");
 
   return (
     <div className="space-y-6">

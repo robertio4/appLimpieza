@@ -57,13 +57,15 @@ export default function GastosPage() {
 
     try {
       let result;
+      const categoriaFilter = filterCategoria && filterCategoria !== "all" ? filterCategoria : undefined;
+
       if (filterStartDate && filterEndDate) {
         result = await getGastosByDateRange(
           filterStartDate,
           filterEndDate,
-          filterCategoria || undefined
+          categoriaFilter
         );
-      } else if (filterCategoria) {
+      } else if (categoriaFilter) {
         // If only category filter, use date range with wide dates
         const startOfYear = new Date();
         startOfYear.setMonth(0, 1);
@@ -72,7 +74,7 @@ export default function GastosPage() {
         result = await getGastosByDateRange(
           startOfYear.toISOString().split("T")[0],
           endOfYear.toISOString().split("T")[0],
-          filterCategoria
+          categoriaFilter
         );
       } else {
         result = await getGastos();
@@ -125,8 +127,6 @@ export default function GastosPage() {
     setFilterCategoria("");
   };
 
-  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterCategoria);
-
   const handleCategoriasChange = async () => {
     const result = await getCategorias();
     if (result.success) {
@@ -136,6 +136,9 @@ export default function GastosPage() {
   };
 
   const total = gastos.reduce((sum, gasto) => sum + gasto.importe, 0);
+  const hasActiveFilters =
+    !!filterStartDate || !!filterEndDate ||
+    (!!filterCategoria && filterCategoria !== "all");
 
   return (
     <div className="space-y-6">
