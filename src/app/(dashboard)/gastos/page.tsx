@@ -36,7 +36,6 @@ export default function GastosPage() {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("");
-  const [isFiltered, setIsFiltered] = useState(false);
 
   // Modals
   const [showGastoForm, setShowGastoForm] = useState(false);
@@ -64,7 +63,6 @@ export default function GastosPage() {
           filterEndDate,
           filterCategoria || undefined
         );
-        setIsFiltered(true);
       } else if (filterCategoria) {
         // If only category filter, use date range with wide dates
         const startOfYear = new Date();
@@ -76,10 +74,8 @@ export default function GastosPage() {
           endOfYear.toISOString().split("T")[0],
           filterCategoria
         );
-        setIsFiltered(true);
       } else {
         result = await getGastos();
-        setIsFiltered(false);
       }
 
       if (result.success) {
@@ -123,15 +119,13 @@ export default function GastosPage() {
     }
   };
 
-  const handleApplyFilters = () => {
-    loadGastos();
-  };
-
   const handleClearFilters = () => {
     setFilterStartDate("");
     setFilterEndDate("");
     setFilterCategoria("");
   };
+
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterCategoria);
 
   const handleCategoriasChange = async () => {
     const result = await getCategorias();
@@ -165,11 +159,23 @@ export default function GastosPage() {
 
       {/* Filters */}
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-4 w-4 text-neutral-500" />
-          <span className="font-medium text-neutral-700">Filtros</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-neutral-500" />
+            <span className="font-medium text-neutral-700">Filtros</span>
+          </div>
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFilters}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Limpiar filtros
+            </Button>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="filter-start">Fecha inicio</Label>
             <Input
@@ -210,16 +216,6 @@ export default function GastosPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={handleApplyFilters} className="flex-1">
-              Aplicar
-            </Button>
-            {isFiltered && (
-              <Button variant="outline" onClick={handleClearFilters}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -236,7 +232,7 @@ export default function GastosPage() {
           <div className="p-8 text-center text-neutral-500">Cargando...</div>
         ) : gastos.length === 0 ? (
           <div className="p-8 text-center text-neutral-500">
-            {isFiltered
+            {hasActiveFilters
               ? "No hay gastos que coincidan con los filtros"
               : "No hay gastos registrados"}
           </div>
@@ -328,7 +324,7 @@ export default function GastosPage() {
             {/* Total */}
             <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-3 flex justify-between items-center">
               <span className="text-sm font-medium text-neutral-600">
-                Total {isFiltered && "(filtrado)"}: {gastos.length} gastos
+                Total {hasActiveFilters && "(filtrado)"}: {gastos.length} gastos
               </span>
               <span className="text-lg font-bold text-neutral-900">
                 {formatCurrency(total)}

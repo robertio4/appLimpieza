@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +22,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   getFacturas,
   getFacturasByFilters,
   deleteFactura,
@@ -27,6 +37,7 @@ import {
   getClientes,
   getFacturaCompleta,
 } from "@/lib/actions/facturas";
+import { generateRecurringInvoices } from "@/lib/actions/clientes";
 import { pdf } from "@react-pdf/renderer";
 import { FacturaPDF } from "@/components/facturas/FacturaPDF";
 import { formatCurrency, formatDate, estadoBadgeStyles, estadoBadgeColors, estadoLabels } from "@/lib/utils";
@@ -50,6 +61,9 @@ import {
   FileEdit,
   Send,
   CircleCheck,
+  CalendarClock,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 
 export default function FacturasPage() {
@@ -61,12 +75,28 @@ export default function FacturasPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
+  // Recurring invoices
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationResult, setGenerationResult] = useState<{
+    generated: Array<{ cliente_nombre: string; factura_numero: string; factura_id: string }>;
+    skipped: Array<{ cliente_nombre: string; reason: string }>;
+    errors: Array<{ cliente_nombre: string; error: string }>;
+  } | null>(null);
+  const [showResultDialog, setShowResultDialog] = useState(false);
+
+  // Period download
+  const [showPeriodDialog, setShowPeriodDialog] = useState(false);
+  const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">("month");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [selectedQuarter, setSelectedQuarter] = useState("1");
+  const [isDownloadingPeriod, setIsDownloadingPeriod] = useState(false);
+
   // Filters
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
-  const [isFiltered, setIsFiltered] = useState(false);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -96,10 +126,8 @@ export default function FacturasPage() {
           filterEstado ? (filterEstado as EstadoFactura) : undefined,
           filterCliente || undefined
         );
-        setIsFiltered(true);
       } else {
         result = await getFacturas();
-        setIsFiltered(false);
       }
 
       if (result.success) {
@@ -239,15 +267,139 @@ export default function FacturasPage() {
     }
   };
 
-  const handleApplyFilters = () => {
-    loadFacturas();
-  };
-
   const handleClearFilters = () => {
     setFilterStartDate("");
     setFilterEndDate("");
     setFilterEstado("");
     setFilterCliente("");
+  };
+
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterEstado || filterCliente);
+
+  const handleGenerateRecurring = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await generateRecurringInvoices();
+      if (result.success) {
+        setGenerationResult(result.data);
+        setShowResultDialog(true);
+        loadFacturas(); // Recargar lista
+      } else {
+        showToast(result.error);
+      }
+    } catch (error) {
+      console.error("Error generating recurring invoices:", error);
+      showToast("Error al generar facturas recurrentes");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadPeriod = async () => {
+    setIsDownloadingPeriod(true);
+    try {
+      // Calculate date range based on period type
+      let startDate: string;
+      let endDate: string;
+      const year = parseInt(selectedYear);
+
+      if (periodType === "month") {
+        const month = parseInt(selectedMonth);
+        startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+      } else if (periodType === "quarter") {
+        const quarter = parseInt(selectedQuarter);
+        const startMonth = (quarter - 1) * 3 + 1;
+        const endMonth = startMonth + 2;
+        startDate = `${year}-${String(startMonth).padStart(2, "0")}-01`;
+        const lastDay = new Date(year, endMonth, 0).getDate();
+        endDate = `${year}-${String(endMonth).padStart(2, "0")}-${lastDay}`;
+      } else {
+        // year
+        startDate = `${year}-01-01`;
+        endDate = `${year}-12-31`;
+      }
+
+      // Get facturas for the period
+      const result = await getFacturasByFilters(startDate, endDate, undefined, undefined);
+      if (!result.success || result.data.length === 0) {
+        showToast("No hay facturas en el período seleccionado");
+        setIsDownloadingPeriod(false);
+        return;
+      }
+
+      const facturasToDownload = result.data;
+      const zip = new JSZip();
+
+      // Generate PDFs for all invoices in the period with bounded concurrency
+      const CONCURRENCY_LIMIT = 3;
+      let addedCount = 0;
+
+      for (let i = 0; i < facturasToDownload.length; i += CONCURRENCY_LIMIT) {
+        const batch = facturasToDownload.slice(i, i + CONCURRENCY_LIMIT);
+
+        const batchResults = await Promise.all(
+          batch.map(async (factura) => {
+            try {
+              const facturaCompleta = await getFacturaCompleta(factura.id);
+              if (!facturaCompleta.success) {
+                console.error(`Error al obtener factura ${factura.id}`);
+                return null;
+              }
+
+              const pdfBlob = await pdf(<FacturaPDF factura={facturaCompleta.data} />).toBlob();
+
+              return {
+                filename: `Factura-${facturaCompleta.data.numero}.pdf`,
+                blob: pdfBlob,
+              };
+            } catch (error) {
+              console.error(`Error generando PDF para factura ${factura.id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        for (const resultItem of batchResults) {
+          if (resultItem) {
+            zip.file(resultItem.filename, resultItem.blob);
+            addedCount++;
+          }
+        }
+      }
+
+      // Generate and download ZIP file
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Generate filename based on period
+      let filename: string;
+      if (periodType === "month") {
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        filename = `Facturas-${monthNames[parseInt(selectedMonth) - 1]}-${selectedYear}.zip`;
+      } else if (periodType === "quarter") {
+        filename = `Facturas-Q${selectedQuarter}-${selectedYear}.zip`;
+      } else {
+        filename = `Facturas-${selectedYear}.zip`;
+      }
+
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`${addedCount} facturas descargadas correctamente`);
+      setShowPeriodDialog(false);
+    } catch (error) {
+      console.error("Error generando ZIP:", error);
+      showToast("Error al generar el archivo ZIP");
+    } finally {
+      setIsDownloadingPeriod(false);
+    }
   };
 
   return (
@@ -258,19 +410,57 @@ export default function FacturasPage() {
           <h1 className="text-2xl font-bold text-neutral-900">Facturas</h1>
           <p className="text-neutral-600">Gestiona tus facturas</p>
         </div>
-        <Button onClick={handleNewFactura}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Factura
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowPeriodDialog(true)}
+            variant="outline"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Descargar por Período
+          </Button>
+          <Button
+            onClick={handleGenerateRecurring}
+            variant="outline"
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <CalendarClock className="h-4 w-4 mr-2" />
+                Generar Recurrentes
+              </>
+            )}
+          </Button>
+          <Button onClick={handleNewFactura}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Factura
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-4 w-4 text-neutral-500" />
-          <span className="font-medium text-neutral-700">Filtros</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-neutral-500" />
+            <span className="font-medium text-neutral-700">Filtros</span>
+          </div>
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFilters}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Limpiar filtros
+            </Button>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="filter-start">Fecha inicio</Label>
             <Input
@@ -319,16 +509,6 @@ export default function FacturasPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={handleApplyFilters} className="flex-1">
-              Aplicar
-            </Button>
-            {isFiltered && (
-              <Button variant="outline" onClick={handleClearFilters}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -345,7 +525,7 @@ export default function FacturasPage() {
           <div className="p-8 text-center text-neutral-500">Cargando...</div>
         ) : facturas.length === 0 ? (
           <div className="p-8 text-center text-neutral-500">
-            {isFiltered
+            {hasActiveFilters
               ? "No hay facturas que coincidan con los filtros"
               : "No hay facturas registradas"}
           </div>
@@ -468,6 +648,231 @@ export default function FacturasPage() {
           </div>
         )}
       </div>
+
+      {/* Dialog de Resultados de Generación */}
+      {showResultDialog && generationResult && (
+        <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Facturas Recurrentes Generadas</DialogTitle>
+              <DialogDescription>
+                Resumen de la generación de facturas para este mes
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Sección: Generadas con éxito */}
+              {generationResult.generated.length > 0 && (
+                <div>
+                  <h3 className="font-medium text-green-700 mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Generadas ({generationResult.generated.length})
+                  </h3>
+                  <ul className="space-y-1">
+                    {generationResult.generated.map((item) => (
+                      <li key={item.factura_id} className="text-sm">
+                        • {item.cliente_nombre} -{" "}
+                        <Link
+                          href={`/facturas/${item.factura_id}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {item.factura_numero}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Sección: Omitidas */}
+              {generationResult.skipped.length > 0 && (
+                <div>
+                  <h3 className="font-medium text-orange-700 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Omitidas ({generationResult.skipped.length})
+                  </h3>
+                  <ul className="space-y-1">
+                    {generationResult.skipped.map((item, idx) => (
+                      <li key={idx} className="text-sm text-neutral-600">
+                        • {item.cliente_nombre}: {item.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Sección: Errores */}
+              {generationResult.errors.length > 0 && (
+                <div>
+                  <h3 className="font-medium text-red-700 mb-2 flex items-center gap-2">
+                    <XCircle className="h-5 w-5" />
+                    Errores ({generationResult.errors.length})
+                  </h3>
+                  <ul className="space-y-1">
+                    {generationResult.errors.map((item, idx) => (
+                      <li key={idx} className="text-sm text-red-600">
+                        • {item.cliente_nombre}: {item.error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button onClick={() => setShowResultDialog(false)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Dialog de Descarga por Período */}
+      <Dialog open={showPeriodDialog} onOpenChange={setShowPeriodDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Descargar Facturas por Período</DialogTitle>
+            <DialogDescription>
+              Selecciona el período para descargar todas las facturas en un archivo ZIP
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="period-type">Tipo de período</Label>
+              <Select value={periodType} onValueChange={(value) => setPeriodType(value as "month" | "quarter" | "year")}>
+                <SelectTrigger id="period-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">Mes</SelectItem>
+                  <SelectItem value="quarter">Trimestre</SelectItem>
+                  <SelectItem value="year">Año</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {periodType === "month" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="month">Mes</Label>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger id="month">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Enero</SelectItem>
+                      <SelectItem value="2">Febrero</SelectItem>
+                      <SelectItem value="3">Marzo</SelectItem>
+                      <SelectItem value="4">Abril</SelectItem>
+                      <SelectItem value="5">Mayo</SelectItem>
+                      <SelectItem value="6">Junio</SelectItem>
+                      <SelectItem value="7">Julio</SelectItem>
+                      <SelectItem value="8">Agosto</SelectItem>
+                      <SelectItem value="9">Septiembre</SelectItem>
+                      <SelectItem value="10">Octubre</SelectItem>
+                      <SelectItem value="11">Noviembre</SelectItem>
+                      <SelectItem value="12">Diciembre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="year-month">Año</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger id="year-month">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {periodType === "quarter" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quarter">Trimestre</Label>
+                  <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
+                    <SelectTrigger id="quarter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
+                      <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
+                      <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
+                      <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="year-quarter">Año</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger id="year-quarter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {periodType === "year" && (
+              <div className="space-y-2">
+                <Label htmlFor="year">Año</Label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger id="year">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPeriodDialog(false)}
+              disabled={isDownloadingPeriod}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleDownloadPeriod} disabled={isDownloadingPeriod}>
+              {isDownloadingPeriod ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Descargando...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Toast notification */}
       {toast && (
