@@ -12,7 +12,7 @@ import {
 import { ClienteForm } from "@/components/clientes/cliente-form";
 import { getClientes, deleteCliente } from "@/lib/actions/clientes";
 import type { Cliente } from "@/types/database";
-import { Pencil, Trash2, Mail, Phone, MapPin, FileText } from "lucide-react";
+import { Pencil, Trash2, Mail, Phone, MapPin, FileText, CalendarClock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -172,6 +172,14 @@ export default function ClientesPage() {
                   <div className="flex items-start gap-2 text-sm text-neutral-600">
                     <FileText className="h-4 w-4 flex-shrink-0 mt-0.5" />
                     <span className="line-clamp-2">{cliente.notas}</span>
+                  </div>
+                )}
+                {cliente.facturacion_recurrente && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      Facturación mensual (día {cliente.dia_facturacion})
+                    </span>
                   </div>
                 )}
               </CardContent>
