@@ -235,8 +235,8 @@ export default function FacturasPage() {
         `Estimado/a ${factura.cliente.nombre},\n\n` +
           `Adjunto le enviamos la factura ${factura.numero} correspondiente a nuestros servicios.\n\n` +
           `Importe total: ${formatCurrency(factura.total)}\n\n` +
-          `Por favor, realice el pago mediante transferencia a:\n` +
-          `${DATOS_EMPRESA.iban}\n\n` +
+          /*           `Por favor, realice el pago mediante transferencia a:\n` +
+          `${DATOS_EMPRESA.iban}\n\n` + */
           `Atentamente,\n${DATOS_EMPRESA.nombre}`,
       );
 
