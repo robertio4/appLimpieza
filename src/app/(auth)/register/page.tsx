@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,13 +86,13 @@ export default function RegisterPage() {
         } else {
           setError(authError.message);
         }
+        setIsLoading(false);
         return;
       }
 
       navigate("/dashboard");
     } catch {
       setError("Ocurrió un error inesperado. Inténtalo de nuevo.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -179,7 +180,14 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creando cuenta...
+                </>
+              ) : (
+                "Crear Cuenta"
+              )}
             </Button>
           </form>
         </CardContent>
