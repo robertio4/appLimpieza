@@ -332,18 +332,6 @@ export default async function DashboardPage({
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Gastos por Categoría</CardTitle>
-            <CardDescription>
-              Distribución de gastos en {monthName}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ExpenseCategoryChart data={expensesByCategory} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Top 5 Clientes</CardTitle>
             <CardDescription>
               Facturación por cliente en {monthName}
@@ -353,10 +341,7 @@ export default async function DashboardPage({
             <TopClientsChart data={topClients} />
           </CardContent>
         </Card>
-      </div>
 
-      {/* Quick Lists */}
-      <div className="grid gap-6 lg:grid-cols-2">
         {/* Last Invoices */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -403,6 +388,21 @@ export default async function DashboardPage({
                 No hay facturas registradas
               </p>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Lists */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gastos por Categoría</CardTitle>
+            <CardDescription>
+              Distribución de gastos en {monthName}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExpenseCategoryChart data={expensesByCategory} />
           </CardContent>
         </Card>
 

@@ -197,6 +197,7 @@ export interface MonthlyTotal {
   monthNum: number;
   year: number;
   ingresos: number;
+  pendiente: number;
   gastos: number;
 }
 
@@ -246,6 +247,16 @@ export async function getMonthlyTotals(
 
       const ingresos = invoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
+      const { data: pendienteInvoices } = await supabase
+        .from("facturas")
+        .select("total")
+        .eq("user_id", user.id)
+        .eq("estado", "enviada")
+        .gte("fecha", startDate)
+        .lte("fecha", endDate);
+
+      const pendiente = pendienteInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
+
       const { data: gastos } = await supabase
         .from("gastos")
         .select("importe")
@@ -260,6 +271,7 @@ export async function getMonthlyTotals(
         monthNum: month + 1,
         year,
         ingresos,
+        pendiente,
         gastos: totalGastos,
       });
     }
