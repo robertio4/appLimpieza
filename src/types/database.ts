@@ -569,6 +569,14 @@ export interface Database {
         };
         Returns: string;
       };
+      get_months_with_invoices: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          year: number;
+          month: number;
+          count: number;
+        }[];
+      };
     };
     Enums: {
       estado_factura: EstadoFactura;

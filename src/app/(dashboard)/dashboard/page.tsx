@@ -50,13 +50,13 @@ function getStatusBadge(estado: EstadoFactura) {
 }
 
 interface DashboardPageProps {
-  searchParams: Promise<{ month?: string; year?: string; all?: string }>;
+  searchParams: { month?: string; year?: string; all?: string };
 }
 
 export default async function DashboardPage({
   searchParams,
 }: DashboardPageProps) {
-  const params = await searchParams;
+  const params = searchParams;
   const isAll = params.all === "true";
 
   // Get months with invoices first
@@ -71,8 +71,21 @@ export default async function DashboardPage({
     month = 0;
     year = 0;
   } else if (params.month && params.year) {
-    month = parseInt(params.month);
-    year = parseInt(params.year);
+    const parsedMonth = parseInt(params.month, 10);
+    const parsedYear = parseInt(params.year, 10);
+    const isValidMonth = !isNaN(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12;
+    const isValidYear = !isNaN(parsedYear) && parsedYear >= 2000;
+    if (isValidMonth && isValidYear) {
+      month = parsedMonth;
+      year = parsedYear;
+    } else if (availableMonths.length > 0) {
+      month = availableMonths[0].month;
+      year = availableMonths[0].year;
+    } else {
+      const now = new Date();
+      month = now.getMonth() + 1;
+      year = now.getFullYear();
+    }
   } else if (availableMonths.length > 0) {
     // Default to the most recent month with invoices
     month = availableMonths[0].month;

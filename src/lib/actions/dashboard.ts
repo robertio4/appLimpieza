@@ -367,37 +367,19 @@ export async function getMonthsWithInvoices(): Promise<
 
     const supabase = await createClient();
 
-    const { data: facturas, error } = await supabase
-      .from("facturas")
-      .select("fecha")
-      .eq("user_id", user.id)
-      .order("fecha", { ascending: false });
+    const { data, error } = await supabase.rpc("get_months_with_invoices");
 
     if (error) {
       return createErrorResult(error.message);
     }
 
-    const monthMap = new Map<string, MonthWithInvoices>();
-
-    facturas?.forEach((factura) => {
-      if (!factura.fecha) return;
-      // fecha is a Postgres DATE string "YYYY-MM-DD" – extract directly to avoid timezone issues
-      const [yearStr, monthStr] = factura.fecha.split("-");
-      const year = parseInt(yearStr);
-      const month = parseInt(monthStr);
-      const key = `${year}-${month}`;
-
-      if (monthMap.has(key)) {
-        monthMap.get(key)!.count++;
-      } else {
-        monthMap.set(key, { month, year, count: 1 });
-      }
-    });
-
-    const result = Array.from(monthMap.values()).sort((a, b) => {
-      if (a.year !== b.year) return b.year - a.year;
-      return b.month - a.month;
-    });
+    const result: MonthWithInvoices[] = (data ?? []).map(
+      (row: { year: number; month: number; count: number }) => ({
+        year: Number(row.year),
+        month: Number(row.month),
+        count: Number(row.count),
+      }),
+    );
 
     return createSuccessResult(result);
   } catch {
