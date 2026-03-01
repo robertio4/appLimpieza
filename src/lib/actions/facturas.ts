@@ -95,6 +95,39 @@ export async function getFacturasByFilters(
   }
 }
 
+export async function getAvailableMonthsFacturas(): Promise<ActionResult<string[]>> {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (!user) {
+      return createErrorResult(authError);
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("facturas")
+      .select("fecha")
+      .eq("user_id", user.id)
+      .order("fecha", { ascending: false });
+
+    if (error) {
+      return createErrorResult(error.message);
+    }
+
+    // Extract unique year-month combinations
+    const months = new Set<string>();
+    for (const row of data || []) {
+      if (!row.fecha) continue;
+      // fecha is a Postgres DATE string "YYYY-MM-DD" – derive year-month without Date parsing
+      const yearMonth = row.fecha.slice(0, 7);
+      months.add(yearMonth);
+    }
+
+    return createSuccessResult(Array.from(months));
+  } catch {
+    return createErrorResult("Error al obtener los meses disponibles");
+  }
+}
+
 export async function getFacturaCompleta(
   id: string
 ): Promise<ActionResult<FacturaCompleta>> {
