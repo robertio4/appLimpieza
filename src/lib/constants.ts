@@ -66,3 +66,31 @@ export const TIPO_SERVICIO_COLORS = {
   limpieza_cristales: "#F59E0B", // Amber
   otros: "#6B7280", // Gray
 } as const;
+
+/**
+ * Month names in Spanish
+ */
+export const MONTH_NAMES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+] as const;
+
+/**
+ * Quarter names with month ranges
+ */
+export const QUARTER_NAMES = [
+  "Q1 (Ene-Mar)",
+  "Q2 (Abr-Jun)",
+  "Q3 (Jul-Sep)",
+  "Q4 (Oct-Dic)",
+] as const;

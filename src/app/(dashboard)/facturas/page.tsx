@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -47,7 +48,7 @@ import {
   estadoBadgeColors,
   estadoLabels,
 } from "@/lib/utils";
-import { DATOS_EMPRESA } from "@/lib/constants";
+import { DATOS_EMPRESA, MONTH_NAMES, QUARTER_NAMES } from "@/lib/constants";
 import type {
   FacturaConCliente,
   Cliente,
@@ -75,6 +76,7 @@ import {
 export default function FacturasPage() {
   const router = useRouter();
   const [facturas, setFacturas] = useState<FacturaConCliente[]>([]);
+  const [allFacturas, setAllFacturas] = useState<FacturaConCliente[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,9 @@ export default function FacturasPage() {
     (new Date().getMonth() + 1).toString(),
   );
   const [selectedQuarter, setSelectedQuarter] = useState("1");
+  const [downloadSelectedClientes, setDownloadSelectedClientes] = useState<
+    string[]
+  >([]);
   const [isDownloadingPeriod, setIsDownloadingPeriod] = useState(false);
 
   // Filters
@@ -184,7 +189,7 @@ export default function FacturasPage() {
     }
   }, []);
 
-  const loadAvailableMonths = useCallback(async () => {
+const loadAvailableMonths = useCallback(async () => {
     const result = await getAvailableMonthsFacturas();
     if (result.success) {
       setAvailableMonths(result.data);
@@ -196,6 +201,52 @@ export default function FacturasPage() {
       });
     }
   }, []);
+
+  const loadAllFacturas = useCallback(async () => {
+    const result = await getFacturas();
+    if (result.success) {
+      setAllFacturas(result.data);
+    }
+  }, []);
+
+  // Compute available years and months from all facturas for download dialog
+  // Parse fecha as 'YYYY-MM-DD' string to avoid timezone-related date shifts
+  const downloadAvailableYears = useMemo(() => {
+    const years = new Set<number>();
+    allFacturas.forEach((f) => {
+      const year = parseInt(f.fecha.slice(0, 4), 10);
+      years.add(year);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [allFacturas]);
+
+  const downloadAvailableMonths = useMemo(() => {
+    const months = new Set<number>();
+    const year = parseInt(selectedYear);
+    allFacturas.forEach((f) => {
+      const fechaYear = parseInt(f.fecha.slice(0, 4), 10);
+      const fechaMonth = parseInt(f.fecha.slice(5, 7), 10);
+      if (fechaYear === year) {
+        months.add(fechaMonth);
+      }
+    });
+    return Array.from(months).sort((a, b) => a - b);
+  }, [allFacturas, selectedYear]);
+
+  const downloadAvailableQuarters = useMemo(() => {
+    const quarters = new Set<number>();
+    const year = parseInt(selectedYear);
+    allFacturas.forEach((f) => {
+      const fechaYear = parseInt(f.fecha.slice(0, 4), 10);
+      const fechaMonth = parseInt(f.fecha.slice(5, 7), 10);
+      if (fechaYear === year) {
+        const quarter = Math.ceil(fechaMonth / 3);
+        quarters.add(quarter);
+      }
+    });
+    return Array.from(quarters).sort((a, b) => a - b);
+  }, [allFacturas, selectedYear]);
+
 
   const loadFacturas = useCallback(async () => {
     setIsLoading(true);
@@ -235,7 +286,29 @@ export default function FacturasPage() {
   useEffect(() => {
     loadClientes();
     loadAvailableMonths();
-  }, [loadClientes, loadAvailableMonths]);
+    loadAllFacturas();
+  }, [loadClientes, loadAvailableMonths, loadAllFacturas]);
+
+  // Reset month/quarter when year changes and selection is not available (for download dialog)
+  useEffect(() => {
+    if (
+      downloadAvailableMonths.length > 0 &&
+      !downloadAvailableMonths.includes(parseInt(selectedMonth))
+    ) {
+      setSelectedMonth(downloadAvailableMonths[downloadAvailableMonths.length - 1].toString());
+    }
+  }, [downloadAvailableMonths, selectedMonth]);
+
+  useEffect(() => {
+    if (
+      downloadAvailableQuarters.length > 0 &&
+      !downloadAvailableQuarters.includes(parseInt(selectedQuarter))
+    ) {
+      setSelectedQuarter(
+        downloadAvailableQuarters[downloadAvailableQuarters.length - 1].toString(),
+      );
+    }
+  }, [downloadAvailableQuarters, selectedQuarter]);
 
   useEffect(() => {
     loadFacturas();
@@ -425,6 +498,9 @@ export default function FacturasPage() {
         endDate,
         undefined,
         undefined,
+        downloadSelectedClientes.length > 0
+          ? downloadSelectedClientes
+          : undefined,
       );
       if (!result.success || result.data.length === 0) {
         showToast("No hay facturas en el período seleccionado");
@@ -486,23 +562,9 @@ export default function FacturasPage() {
       // Generate filename based on period
       let filename: string;
       if (periodType === "month") {
-        const monthNames = [
-          "Enero",
-          "Febrero",
-          "Marzo",
-          "Abril",
-          "Mayo",
-          "Junio",
-          "Julio",
-          "Agosto",
-          "Septiembre",
-          "Octubre",
-          "Noviembre",
-          "Diciembre",
-        ];
-        filename = `Facturas-${monthNames[parseInt(selectedMonth) - 1]}-${selectedYear}.zip`;
+        filename = `Facturas-${MONTH_NAMES[parseInt(selectedMonth) - 1]}-${selectedYear}.zip`;
       } else if (periodType === "quarter") {
-        filename = `Facturas-Q${selectedQuarter}-${selectedYear}.zip`;
+        filename = `Facturas-${QUARTER_NAMES[parseInt(selectedQuarter) - 1]}-${selectedYear}.zip`;
       } else {
         filename = `Facturas-${selectedYear}.zip`;
       }
@@ -515,6 +577,7 @@ export default function FacturasPage() {
 
       showToast(`${addedCount} facturas descargadas correctamente`);
       setShowPeriodDialog(false);
+      setDownloadSelectedClientes([]);
     } catch (error) {
       console.error("Error generando ZIP:", error);
       showToast("Error al generar el archivo ZIP");
@@ -532,9 +595,15 @@ export default function FacturasPage() {
           <p className="text-neutral-600">Gestiona tus facturas</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowPeriodDialog(true)} variant="outline">
+          <Button
+            onClick={() => {
+              setDownloadSelectedClientes(clientes.map((c) => c.id));
+              setShowPeriodDialog(true);
+            }}
+            variant="outline"
+          >
             <Download className="h-4 w-4 mr-2" />
-            Descargar
+            Descargar PDFs
           </Button>
           <Button onClick={handleNewFactura}>
             <Plus className="h-4 w-4 mr-2" />
@@ -913,10 +982,11 @@ export default function FacturasPage() {
       <Dialog open={showPeriodDialog} onOpenChange={setShowPeriodDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Descargar Facturas por Período</DialogTitle>
+            <DialogTitle>Descargar Facturas</DialogTitle>
             <DialogDescription>
-              Selecciona el período para descargar todas las facturas en un
-              archivo ZIP
+              Selecciona el período y los clientes para descargar todas las
+              facturas en un archivo ZIP. Cada factura se descargará como un PDF
+              individual dentro del ZIP.
             </DialogDescription>
           </DialogHeader>
 
@@ -952,18 +1022,11 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Enero</SelectItem>
-                      <SelectItem value="2">Febrero</SelectItem>
-                      <SelectItem value="3">Marzo</SelectItem>
-                      <SelectItem value="4">Abril</SelectItem>
-                      <SelectItem value="5">Mayo</SelectItem>
-                      <SelectItem value="6">Junio</SelectItem>
-                      <SelectItem value="7">Julio</SelectItem>
-                      <SelectItem value="8">Agosto</SelectItem>
-                      <SelectItem value="9">Septiembre</SelectItem>
-                      <SelectItem value="10">Octubre</SelectItem>
-                      <SelectItem value="11">Noviembre</SelectItem>
-                      <SelectItem value="12">Diciembre</SelectItem>
+                      {downloadAvailableMonths.map((month) => (
+                        <SelectItem key={month} value={month.toString()}>
+                          {MONTH_NAMES[month - 1]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -974,10 +1037,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(
-                        { length: 5 },
-                        (_, i) => new Date().getFullYear() - i,
-                      ).map((year) => (
+                      {downloadAvailableYears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -1000,10 +1060,11 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
-                      <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
-                      <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
-                      <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
+                      {downloadAvailableQuarters.map((quarter) => (
+                        <SelectItem key={quarter} value={quarter.toString()}>
+                          {QUARTER_NAMES[quarter - 1]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1014,10 +1075,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(
-                        { length: 5 },
-                        (_, i) => new Date().getFullYear() - i,
-                      ).map((year) => (
+                      {downloadAvailableYears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -1036,10 +1094,7 @@ export default function FacturasPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from(
-                      { length: 5 },
-                      (_, i) => new Date().getFullYear() - i,
-                    ).map((year) => (
+                    {downloadAvailableYears.map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>
@@ -1048,6 +1103,74 @@ export default function FacturasPage() {
                 </Select>
               </div>
             )}
+
+            {/* Filtro de clientes */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Clientes</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-1 px-2 text-xs"
+                  onClick={() => {
+                    if (downloadSelectedClientes.length === clientes.length) {
+                      setDownloadSelectedClientes([]);
+                    } else {
+                      setDownloadSelectedClientes(clientes.map((c) => c.id));
+                    }
+                  }}
+                >
+                  {downloadSelectedClientes.length === clientes.length
+                    ? "Deseleccionar todos"
+                    : "Seleccionar todos"}
+                </Button>
+              </div>
+              <div className="border rounded-md max-h-40 overflow-y-auto p-2 space-y-2">
+                {clientes.length === 0 ? (
+                  <p className="text-sm text-neutral-500 text-center py-2">
+                    No hay clientes
+                  </p>
+                ) : (
+                  clientes.map((cliente) => (
+                    <div
+                      key={cliente.id}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={`download-cliente-${cliente.id}`}
+                        checked={downloadSelectedClientes.includes(cliente.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked === true) {
+                            setDownloadSelectedClientes((prev) => {
+                              if (prev.includes(cliente.id)) return prev;
+                              return [...prev, cliente.id];
+                            });
+                          } else if (checked === false) {
+                            setDownloadSelectedClientes((prev) =>
+                              prev.filter((id) => id !== cliente.id),
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`download-cliente-${cliente.id}`}
+                        className="text-sm cursor-pointer flex-1"
+                      >
+                        {cliente.nombre}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-neutral-500">
+                {downloadSelectedClientes.length === 0
+                  ? "Ningún cliente seleccionado"
+                  : downloadSelectedClientes.length === clientes.length
+                    ? `Todos los clientes (${clientes.length})`
+                    : `${downloadSelectedClientes.length} cliente${downloadSelectedClientes.length > 1 ? "s" : ""} seleccionado${downloadSelectedClientes.length > 1 ? "s" : ""}`}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
@@ -1061,7 +1184,7 @@ export default function FacturasPage() {
             </Button>
             <Button
               onClick={handleDownloadPeriod}
-              disabled={isDownloadingPeriod}
+              disabled={isDownloadingPeriod || downloadSelectedClientes.length === 0}
             >
               {isDownloadingPeriod ? (
                 <>
