@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -75,6 +76,7 @@ import {
 export default function FacturasPage() {
   const router = useRouter();
   const [facturas, setFacturas] = useState<FacturaConCliente[]>([]);
+  const [allFacturas, setAllFacturas] = useState<FacturaConCliente[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,9 @@ export default function FacturasPage() {
     (new Date().getMonth() + 1).toString(),
   );
   const [selectedQuarter, setSelectedQuarter] = useState("1");
+  const [downloadSelectedClientes, setDownloadSelectedClientes] = useState<
+    string[]
+  >([]);
   const [isDownloadingPeriod, setIsDownloadingPeriod] = useState(false);
 
   // Filters
@@ -125,6 +130,48 @@ export default function FacturasPage() {
       setClientes(result.data);
     }
   }, []);
+
+  const loadAllFacturas = useCallback(async () => {
+    const result = await getFacturas();
+    if (result.success) {
+      setAllFacturas(result.data);
+    }
+  }, []);
+
+  // Compute available years and months from all facturas (only periods with actual invoices)
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    allFacturas.forEach((f) => {
+      const year = new Date(f.fecha).getFullYear();
+      years.add(year);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [allFacturas]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<number>();
+    const year = parseInt(selectedYear);
+    allFacturas.forEach((f) => {
+      const date = new Date(f.fecha);
+      if (date.getFullYear() === year) {
+        months.add(date.getMonth() + 1);
+      }
+    });
+    return Array.from(months).sort((a, b) => a - b);
+  }, [allFacturas, selectedYear]);
+
+  const availableQuarters = useMemo(() => {
+    const quarters = new Set<number>();
+    const year = parseInt(selectedYear);
+    allFacturas.forEach((f) => {
+      const date = new Date(f.fecha);
+      if (date.getFullYear() === year) {
+        const quarter = Math.ceil((date.getMonth() + 1) / 3);
+        quarters.add(quarter);
+      }
+    });
+    return Array.from(quarters).sort((a, b) => a - b);
+  }, [allFacturas, selectedYear]);
 
   const loadFacturas = useCallback(async () => {
     setIsLoading(true);
@@ -163,7 +210,29 @@ export default function FacturasPage() {
 
   useEffect(() => {
     loadClientes();
-  }, [loadClientes]);
+    loadAllFacturas();
+  }, [loadClientes, loadAllFacturas]);
+
+  // Reset month/quarter when year changes and selection is not available
+  useEffect(() => {
+    if (
+      availableMonths.length > 0 &&
+      !availableMonths.includes(parseInt(selectedMonth))
+    ) {
+      setSelectedMonth(availableMonths[availableMonths.length - 1].toString());
+    }
+  }, [availableMonths, selectedMonth]);
+
+  useEffect(() => {
+    if (
+      availableQuarters.length > 0 &&
+      !availableQuarters.includes(parseInt(selectedQuarter))
+    ) {
+      setSelectedQuarter(
+        availableQuarters[availableQuarters.length - 1].toString(),
+      );
+    }
+  }, [availableQuarters, selectedQuarter]);
 
   useEffect(() => {
     loadFacturas();
@@ -352,6 +421,9 @@ export default function FacturasPage() {
         endDate,
         undefined,
         undefined,
+        downloadSelectedClientes.length > 0
+          ? downloadSelectedClientes
+          : undefined,
       );
       if (!result.success || result.data.length === 0) {
         showToast("No hay facturas en el período seleccionado");
@@ -442,6 +514,7 @@ export default function FacturasPage() {
 
       showToast(`${addedCount} facturas descargadas correctamente`);
       setShowPeriodDialog(false);
+      setDownloadSelectedClientes([]);
     } catch (error) {
       console.error("Error generando ZIP:", error);
       showToast("Error al generar el archivo ZIP");
@@ -459,9 +532,15 @@ export default function FacturasPage() {
           <p className="text-neutral-600">Gestiona tus facturas</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowPeriodDialog(true)} variant="outline">
+          <Button
+            onClick={() => {
+              setDownloadSelectedClientes(clientes.map((c) => c.id));
+              setShowPeriodDialog(true);
+            }}
+            variant="outline"
+          >
             <Download className="h-4 w-4 mr-2" />
-            Descargar
+            Descargar PDFs
           </Button>
           <Button onClick={handleNewFactura}>
             <Plus className="h-4 w-4 mr-2" />
@@ -779,10 +858,11 @@ export default function FacturasPage() {
       <Dialog open={showPeriodDialog} onOpenChange={setShowPeriodDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Descargar Facturas por Período</DialogTitle>
+            <DialogTitle>Descargar Facturas</DialogTitle>
             <DialogDescription>
-              Selecciona el período para descargar todas las facturas en un
-              archivo ZIP
+              Selecciona el período y los clientes para descargar todas las
+              facturas en un archivo ZIP. Cada factura se descargará como un PDF
+              individual dentro del ZIP.
             </DialogDescription>
           </DialogHeader>
 
@@ -818,18 +898,27 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Enero</SelectItem>
-                      <SelectItem value="2">Febrero</SelectItem>
-                      <SelectItem value="3">Marzo</SelectItem>
-                      <SelectItem value="4">Abril</SelectItem>
-                      <SelectItem value="5">Mayo</SelectItem>
-                      <SelectItem value="6">Junio</SelectItem>
-                      <SelectItem value="7">Julio</SelectItem>
-                      <SelectItem value="8">Agosto</SelectItem>
-                      <SelectItem value="9">Septiembre</SelectItem>
-                      <SelectItem value="10">Octubre</SelectItem>
-                      <SelectItem value="11">Noviembre</SelectItem>
-                      <SelectItem value="12">Diciembre</SelectItem>
+                      {availableMonths.map((month) => {
+                        const monthNames = [
+                          "Enero",
+                          "Febrero",
+                          "Marzo",
+                          "Abril",
+                          "Mayo",
+                          "Junio",
+                          "Julio",
+                          "Agosto",
+                          "Septiembre",
+                          "Octubre",
+                          "Noviembre",
+                          "Diciembre",
+                        ];
+                        return (
+                          <SelectItem key={month} value={month.toString()}>
+                            {monthNames[month - 1]}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -840,10 +929,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(
-                        { length: 5 },
-                        (_, i) => new Date().getFullYear() - i,
-                      ).map((year) => (
+                      {availableYears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -866,10 +952,19 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
-                      <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
-                      <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
-                      <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
+                      {availableQuarters.map((quarter) => {
+                        const quarterNames = [
+                          "Q1 (Ene-Mar)",
+                          "Q2 (Abr-Jun)",
+                          "Q3 (Jul-Sep)",
+                          "Q4 (Oct-Dic)",
+                        ];
+                        return (
+                          <SelectItem key={quarter} value={quarter.toString()}>
+                            {quarterNames[quarter - 1]}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -880,10 +975,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(
-                        { length: 5 },
-                        (_, i) => new Date().getFullYear() - i,
-                      ).map((year) => (
+                      {availableYears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -902,10 +994,7 @@ export default function FacturasPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from(
-                      { length: 5 },
-                      (_, i) => new Date().getFullYear() - i,
-                    ).map((year) => (
+                    {availableYears.map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>
@@ -914,6 +1003,76 @@ export default function FacturasPage() {
                 </Select>
               </div>
             )}
+
+            {/* Filtro de clientes */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Clientes</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-1 px-2 text-xs"
+                  onClick={() => {
+                    if (downloadSelectedClientes.length === clientes.length) {
+                      setDownloadSelectedClientes([]);
+                    } else {
+                      setDownloadSelectedClientes(clientes.map((c) => c.id));
+                    }
+                  }}
+                >
+                  {downloadSelectedClientes.length === clientes.length
+                    ? "Deseleccionar todos"
+                    : "Seleccionar todos"}
+                </Button>
+              </div>
+              <div className="border rounded-md max-h-40 overflow-y-auto p-2 space-y-2">
+                {clientes.length === 0 ? (
+                  <p className="text-sm text-neutral-500 text-center py-2">
+                    No hay clientes
+                  </p>
+                ) : (
+                  clientes.map((cliente) => (
+                    <div
+                      key={cliente.id}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={`download-cliente-${cliente.id}`}
+                        checked={downloadSelectedClientes.includes(cliente.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setDownloadSelectedClientes([
+                              ...downloadSelectedClientes,
+                              cliente.id,
+                            ]);
+                          } else {
+                            setDownloadSelectedClientes(
+                              downloadSelectedClientes.filter(
+                                (id) => id !== cliente.id,
+                              ),
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`download-cliente-${cliente.id}`}
+                        className="text-sm cursor-pointer flex-1"
+                      >
+                        {cliente.nombre}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-neutral-500">
+                {downloadSelectedClientes.length === 0
+                  ? "Ningún cliente seleccionado"
+                  : downloadSelectedClientes.length === clientes.length
+                    ? `Todos los clientes (${clientes.length})`
+                    : `${downloadSelectedClientes.length} cliente${downloadSelectedClientes.length > 1 ? "s" : ""} seleccionado${downloadSelectedClientes.length > 1 ? "s" : ""}`}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>

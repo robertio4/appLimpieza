@@ -50,7 +50,8 @@ export async function getFacturasByFilters(
   startDate?: string,
   endDate?: string,
   estado?: EstadoFactura,
-  clienteId?: string
+  clienteId?: string,
+  clienteIds?: string[]
 ): Promise<ActionResult<FacturaConCliente[]>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -79,7 +80,9 @@ export async function getFacturasByFilters(
     if (estado) {
       query = query.eq("estado", estado);
     }
-    if (clienteId) {
+    if (clienteIds && clienteIds.length > 0) {
+      query = query.in("cliente_id", clienteIds);
+    } else if (clienteId) {
       query = query.eq("cliente_id", clienteId);
     }
 
