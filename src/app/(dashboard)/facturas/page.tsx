@@ -6,7 +6,6 @@ import Link from "next/link";
 import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,6 +36,7 @@ import {
   updateEstadoFactura,
   getClientes,
   getFacturaCompleta,
+  getAvailableMonthsFacturas,
 } from "@/lib/actions/facturas";
 import { generateRecurringInvoices } from "@/lib/actions/clientes";
 import { pdf } from "@react-pdf/renderer";
@@ -114,10 +114,68 @@ export default function FacturasPage() {
   const [isDownloadingPeriod, setIsDownloadingPeriod] = useState(false);
 
   // Filters
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
+  const [filterPeriodType, setFilterPeriodType] = useState<"month" | "quarter" | "year">("month");
+  const [filterMonth, setFilterMonth] = useState("all");
+  const [filterQuarter, setFilterQuarter] = useState("1");
   const [filterEstado, setFilterEstado] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+
+  // Extract available years from available months
+  const availableYears = Array.from(
+    new Set(availableMonths.map((ym) => ym.split("-")[0]))
+  ).sort((a, b) => Number(b) - Number(a));
+
+  // Get months available for selected year
+  const monthsForYear = availableMonths
+    .filter((ym) => ym.startsWith(filterYear))
+    .map((ym) => {
+      const month = parseInt(ym.split("-")[1]);
+      const date = new Date(parseInt(filterYear), month - 1);
+      const monthName = new Intl.DateTimeFormat("es-ES", { month: "long" }).format(date);
+      return {
+        value: month.toString(),
+        label: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+      };
+    })
+    .sort((a, b) => Number(a.value) - Number(b.value));
+
+  // Calculate date range based on filters (synchronous, avoids double-fetch)
+  const { filterStartDate, filterEndDate } = useMemo(() => {
+    if (!filterYear || filterYear === "all") {
+      return { filterStartDate: "", filterEndDate: "" };
+    }
+    const year = parseInt(filterYear);
+    if (filterPeriodType === "year") {
+      return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
+    } else if (filterPeriodType === "quarter") {
+      const quarter = parseInt(filterQuarter);
+      const startMonth = (quarter - 1) * 3 + 1;
+      const endMonth = startMonth + 2;
+      const lastDay = new Date(year, endMonth, 0).getDate();
+      return {
+        filterStartDate: `${year}-${String(startMonth).padStart(2, "0")}-01`,
+        filterEndDate: `${year}-${String(endMonth).padStart(2, "0")}-${lastDay}`,
+      };
+    } else {
+      if (filterMonth === "all") {
+        return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
+      } else {
+        const month = parseInt(filterMonth);
+        const lastDay = new Date(year, month, 0).getDate();
+        return {
+          filterStartDate: `${year}-${String(month).padStart(2, "0")}-01`,
+          filterEndDate: `${year}-${String(month).padStart(2, "0")}-${lastDay}`,
+        };
+      }
+    }
+  }, [filterYear, filterPeriodType, filterMonth, filterQuarter]);
+
+  // Reset filterMonth when filterYear changes to avoid stale month selection
+  useEffect(() => {
+    setFilterMonth("all");
+  }, [filterYear]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -131,6 +189,19 @@ export default function FacturasPage() {
     }
   }, []);
 
+const loadAvailableMonths = useCallback(async () => {
+    const result = await getAvailableMonthsFacturas();
+    if (result.success) {
+      setAvailableMonths(result.data);
+      const years = Array.from(new Set(result.data.map((ym: string) => ym.split("-")[0])));
+      setFilterYear((currentYear) => {
+        if (result.data.length === 0) return "all";
+        if (!years.includes(currentYear)) return years[0];
+        return currentYear;
+      });
+    }
+  }, []);
+
   const loadAllFacturas = useCallback(async () => {
     const result = await getFacturas();
     if (result.success) {
@@ -138,9 +209,9 @@ export default function FacturasPage() {
     }
   }, []);
 
-  // Compute available years and months from all facturas (only periods with actual invoices)
+  // Compute available years and months from all facturas for download dialog
   // Parse fecha as 'YYYY-MM-DD' string to avoid timezone-related date shifts
-  const availableYears = useMemo(() => {
+  const downloadAvailableYears = useMemo(() => {
     const years = new Set<number>();
     allFacturas.forEach((f) => {
       const year = parseInt(f.fecha.slice(0, 4), 10);
@@ -149,7 +220,7 @@ export default function FacturasPage() {
     return Array.from(years).sort((a, b) => b - a);
   }, [allFacturas]);
 
-  const availableMonths = useMemo(() => {
+  const downloadAvailableMonths = useMemo(() => {
     const months = new Set<number>();
     const year = parseInt(selectedYear);
     allFacturas.forEach((f) => {
@@ -162,7 +233,7 @@ export default function FacturasPage() {
     return Array.from(months).sort((a, b) => a - b);
   }, [allFacturas, selectedYear]);
 
-  const availableQuarters = useMemo(() => {
+  const downloadAvailableQuarters = useMemo(() => {
     const quarters = new Set<number>();
     const year = parseInt(selectedYear);
     allFacturas.forEach((f) => {
@@ -175,6 +246,7 @@ export default function FacturasPage() {
     });
     return Array.from(quarters).sort((a, b) => a - b);
   }, [allFacturas, selectedYear]);
+
 
   const loadFacturas = useCallback(async () => {
     setIsLoading(true);
@@ -213,29 +285,30 @@ export default function FacturasPage() {
 
   useEffect(() => {
     loadClientes();
+    loadAvailableMonths();
     loadAllFacturas();
-  }, [loadClientes, loadAllFacturas]);
+  }, [loadClientes, loadAvailableMonths, loadAllFacturas]);
 
-  // Reset month/quarter when year changes and selection is not available
+  // Reset month/quarter when year changes and selection is not available (for download dialog)
   useEffect(() => {
     if (
-      availableMonths.length > 0 &&
-      !availableMonths.includes(parseInt(selectedMonth))
+      downloadAvailableMonths.length > 0 &&
+      !downloadAvailableMonths.includes(parseInt(selectedMonth))
     ) {
-      setSelectedMonth(availableMonths[availableMonths.length - 1].toString());
+      setSelectedMonth(downloadAvailableMonths[downloadAvailableMonths.length - 1].toString());
     }
-  }, [availableMonths, selectedMonth]);
+  }, [downloadAvailableMonths, selectedMonth]);
 
   useEffect(() => {
     if (
-      availableQuarters.length > 0 &&
-      !availableQuarters.includes(parseInt(selectedQuarter))
+      downloadAvailableQuarters.length > 0 &&
+      !downloadAvailableQuarters.includes(parseInt(selectedQuarter))
     ) {
       setSelectedQuarter(
-        availableQuarters[availableQuarters.length - 1].toString(),
+        downloadAvailableQuarters[downloadAvailableQuarters.length - 1].toString(),
       );
     }
-  }, [availableQuarters, selectedQuarter]);
+  }, [downloadAvailableQuarters, selectedQuarter]);
 
   useEffect(() => {
     loadFacturas();
@@ -361,15 +434,16 @@ export default function FacturasPage() {
   };
 
   const handleClearFilters = () => {
-    setFilterStartDate("");
-    setFilterEndDate("");
+    setFilterYear("all");
+    setFilterPeriodType("month");
+    setFilterMonth("all");
+    setFilterQuarter("1");
     setFilterEstado("");
     setFilterCliente("");
   };
 
   const hasActiveFilters =
-    filterStartDate ||
-    filterEndDate ||
+    (filterYear && filterYear !== "all") ||
     (filterEstado && filterEstado !== "all") ||
     (filterCliente && filterCliente !== "all");
 
@@ -569,24 +643,85 @@ export default function FacturasPage() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {filterPeriodType === "month" && filterYear && filterYear !== "all" && (
+            <div className="space-y-2">
+              <Label htmlFor="filter-month">Mes</Label>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger id="filter-month">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {monthsForYear.length > 0 ? (
+                    monthsForYear.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    Array.from({ length: 12 }, (_, i) => {
+                      const date = new Date(parseInt(filterYear), i);
+                      const monthName = new Intl.DateTimeFormat("es-ES", { month: "long" }).format(date);
+                      return (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+                        </SelectItem>
+                      );
+                    })
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {filterPeriodType === "quarter" && filterYear && filterYear !== "all" && (
+            <div className="space-y-2">
+              <Label htmlFor="filter-quarter">Trimestre</Label>
+              <Select value={filterQuarter} onValueChange={setFilterQuarter}>
+                <SelectTrigger id="filter-quarter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
+                  <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
+                  <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
+                  <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
-            <Label htmlFor="filter-start">Fecha inicio</Label>
-            <Input
-              id="filter-start"
-              type="date"
-              value={filterStartDate}
-              onChange={(e) => setFilterStartDate(e.target.value)}
-            />
+            <Label htmlFor="filter-period">Periodo</Label>
+            <Select
+              value={filterPeriodType}
+              onValueChange={(value) => setFilterPeriodType(value as "month" | "quarter" | "year")}
+              disabled={!filterYear || filterYear === "all"}
+            >
+              <SelectTrigger id="filter-period">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Mes</SelectItem>
+                <SelectItem value="quarter">Trimestre</SelectItem>
+                <SelectItem value="year">Año</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="filter-end">Fecha fin</Label>
-            <Input
-              id="filter-end"
-              type="date"
-              value={filterEndDate}
-              onChange={(e) => setFilterEndDate(e.target.value)}
-            />
+            <Label htmlFor="filter-year">Año</Label>
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger id="filter-year">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="filter-estado">Estado</Label>
@@ -887,7 +1022,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableMonths.map((month) => (
+                      {downloadAvailableMonths.map((month) => (
                         <SelectItem key={month} value={month.toString()}>
                           {MONTH_NAMES[month - 1]}
                         </SelectItem>
@@ -902,7 +1037,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableYears.map((year) => (
+                      {downloadAvailableYears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -925,7 +1060,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableQuarters.map((quarter) => (
+                      {downloadAvailableQuarters.map((quarter) => (
                         <SelectItem key={quarter} value={quarter.toString()}>
                           {QUARTER_NAMES[quarter - 1]}
                         </SelectItem>
@@ -940,7 +1075,7 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableYears.map((year) => (
+                      {downloadAvailableYears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -959,7 +1094,7 @@ export default function FacturasPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableYears.map((year) => (
+                    {downloadAvailableYears.map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>

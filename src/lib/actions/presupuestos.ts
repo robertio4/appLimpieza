@@ -56,6 +56,39 @@ export async function getPresupuestos(): Promise<
   }
 }
 
+export async function getAvailableMonthsPresupuestos(): Promise<ActionResult<string[]>> {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (!user) {
+      return createErrorResult(authError);
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("presupuestos")
+      .select("fecha")
+      .eq("user_id", user.id)
+      .order("fecha", { ascending: false });
+
+    if (error) {
+      return createErrorResult(error.message);
+    }
+
+    // Extract unique year-month combinations
+    const months = new Set<string>();
+    for (const row of data || []) {
+      if (!row.fecha) continue;
+      // fecha is a Postgres DATE string "YYYY-MM-DD" – derive year-month without Date parsing
+      const yearMonth = row.fecha.slice(0, 7); // "YYYY-MM"
+      months.add(yearMonth);
+    }
+
+    return createSuccessResult(Array.from(months));
+  } catch {
+    return createErrorResult("Error al obtener los meses disponibles");
+  }
+}
+
 /**
  * Get presupuestos filtered by date range, estado, and cliente
  */
