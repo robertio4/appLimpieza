@@ -48,7 +48,7 @@ import {
   estadoBadgeColors,
   estadoLabels,
 } from "@/lib/utils";
-import { DATOS_EMPRESA } from "@/lib/constants";
+import { DATOS_EMPRESA, MONTH_NAMES, QUARTER_NAMES } from "@/lib/constants";
 import type {
   FacturaConCliente,
   Cliente,
@@ -485,23 +485,9 @@ export default function FacturasPage() {
       // Generate filename based on period
       let filename: string;
       if (periodType === "month") {
-        const monthNames = [
-          "Enero",
-          "Febrero",
-          "Marzo",
-          "Abril",
-          "Mayo",
-          "Junio",
-          "Julio",
-          "Agosto",
-          "Septiembre",
-          "Octubre",
-          "Noviembre",
-          "Diciembre",
-        ];
-        filename = `Facturas-${monthNames[parseInt(selectedMonth) - 1]}-${selectedYear}.zip`;
+        filename = `Facturas-${MONTH_NAMES[parseInt(selectedMonth) - 1]}-${selectedYear}.zip`;
       } else if (periodType === "quarter") {
-        filename = `Facturas-Q${selectedQuarter}-${selectedYear}.zip`;
+        filename = `Facturas-${QUARTER_NAMES[parseInt(selectedQuarter) - 1]}-${selectedYear}.zip`;
       } else {
         filename = `Facturas-${selectedYear}.zip`;
       }
@@ -898,27 +884,11 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableMonths.map((month) => {
-                        const monthNames = [
-                          "Enero",
-                          "Febrero",
-                          "Marzo",
-                          "Abril",
-                          "Mayo",
-                          "Junio",
-                          "Julio",
-                          "Agosto",
-                          "Septiembre",
-                          "Octubre",
-                          "Noviembre",
-                          "Diciembre",
-                        ];
-                        return (
-                          <SelectItem key={month} value={month.toString()}>
-                            {monthNames[month - 1]}
-                          </SelectItem>
-                        );
-                      })}
+                      {availableMonths.map((month) => (
+                        <SelectItem key={month} value={month.toString()}>
+                          {MONTH_NAMES[month - 1]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -952,19 +922,11 @@ export default function FacturasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableQuarters.map((quarter) => {
-                        const quarterNames = [
-                          "Q1 (Ene-Mar)",
-                          "Q2 (Abr-Jun)",
-                          "Q3 (Jul-Sep)",
-                          "Q4 (Oct-Dic)",
-                        ];
-                        return (
-                          <SelectItem key={quarter} value={quarter.toString()}>
-                            {quarterNames[quarter - 1]}
-                          </SelectItem>
-                        );
-                      })}
+                      {availableQuarters.map((quarter) => (
+                        <SelectItem key={quarter} value={quarter.toString()}>
+                          {QUARTER_NAMES[quarter - 1]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
