@@ -116,8 +116,9 @@ export async function getAvailableMonthsFacturas(): Promise<ActionResult<string[
     // Extract unique year-month combinations
     const months = new Set<string>();
     for (const row of data || []) {
-      const date = new Date(row.fecha);
-      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      if (!row.fecha) continue;
+      // fecha is a Postgres DATE string "YYYY-MM-DD" – derive year-month without Date parsing
+      const yearMonth = row.fecha.slice(0, 7);
       months.add(yearMonth);
     }
 
