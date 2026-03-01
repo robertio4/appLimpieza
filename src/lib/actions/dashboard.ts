@@ -1,7 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getAuthenticatedUser, createErrorResult, createSuccessResult } from "@/lib/action-helpers";
+import {
+  getAuthenticatedUser,
+  createErrorResult,
+  createSuccessResult,
+} from "@/lib/action-helpers";
 import type { ActionResult } from "@/lib/types";
 import type { FacturaConCliente, GastoConCategoria } from "@/types/database";
 
@@ -35,7 +39,7 @@ export interface TopCliente {
 
 export async function getDashboardStats(
   month: number,
-  year: number
+  year: number,
 ): Promise<ActionResult<DashboardStats>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -44,9 +48,10 @@ export async function getDashboardStats(
     }
 
     const supabase = await createClient();
-    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
-    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
-    const today = new Date().toISOString().split("T")[0];
+    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const today = new Date().toLocaleDateString("sv-SE");
 
     const { data: paidInvoices, error: paidError } = await supabase
       .from("facturas")
@@ -60,7 +65,8 @@ export async function getDashboardStats(
       return createErrorResult(paidError.message);
     }
 
-    const totalFacturado = paidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
+    const totalFacturado =
+      paidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
     const { data: unpaidInvoices, error: unpaidError } = await supabase
       .from("facturas")
@@ -74,7 +80,8 @@ export async function getDashboardStats(
       return createErrorResult(unpaidError.message);
     }
 
-    const pendienteCobro = unpaidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
+    const pendienteCobro =
+      unpaidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
     const { data: gastos, error: gastosError } = await supabase
       .from("gastos")
@@ -136,7 +143,8 @@ export async function getDashboardStats(
 
     // Calcular métricas adicionales
     const totalInvoicesCount = paidInvoices?.length || 0;
-    const ticketPromedio = totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
+    const ticketPromedio =
+      totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
 
     const { data: activeClients } = await supabase
       .from("facturas")
@@ -145,14 +153,16 @@ export async function getDashboardStats(
       .gte("fecha", startDate)
       .lte("fecha", endDate);
 
-    const clientesActivos = activeClients 
-      ? new Set(activeClients.map(f => f.cliente_id)).size 
+    const clientesActivos = activeClients
+      ? new Set(activeClients.map((f) => f.cliente_id)).size
       : 0;
 
-    const totalInvoices = (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
-    const tasaCobro = totalInvoices > 0 
-      ? (paidInvoices?.length || 0) / totalInvoices * 100 
-      : 0;
+    const totalInvoices =
+      (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
+    const tasaCobro =
+      totalInvoices > 0
+        ? ((paidInvoices?.length || 0) / totalInvoices) * 100
+        : 0;
 
     return createSuccessResult({
       totalFacturado,
@@ -181,7 +191,7 @@ export interface MonthlyTotal {
 }
 
 export async function getMonthlyTotals(
-  months: number = 6
+  months: number = 6,
 ): Promise<ActionResult<MonthlyTotal[]>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -193,8 +203,18 @@ export async function getMonthlyTotals(
     const results: MonthlyTotal[] = [];
     const now = new Date();
     const monthNames = [
-      "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-      "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
     ];
 
     for (let i = months - 1; i >= 0; i--) {
@@ -202,8 +222,9 @@ export async function getMonthlyTotals(
       const year = date.getFullYear();
       const month = date.getMonth();
 
-      const startDate = new Date(year, month, 1).toISOString().split("T")[0];
-      const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
+      const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+      const monthLastDay = new Date(year, month + 1, 0).getDate();
+      const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(monthLastDay).padStart(2, "0")}`;
 
       const { data: invoices } = await supabase
         .from("facturas")
@@ -241,7 +262,7 @@ export async function getMonthlyTotals(
 
 export async function getGastosPorCategoria(
   month: number,
-  year: number
+  year: number,
 ): Promise<ActionResult<GastosPorCategoria[]>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -250,15 +271,18 @@ export async function getGastosPorCategoria(
     }
 
     const supabase = await createClient();
-    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
-    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
     const { data: gastos, error } = await supabase
       .from("gastos")
-      .select(`
+      .select(
+        `
         importe,
         categoria:categorias_gasto(nombre, color)
-      `)
+      `,
+      )
       .eq("user_id", user.id)
       .gte("fecha", startDate)
       .lte("fecha", endDate);
@@ -268,25 +292,28 @@ export async function getGastosPorCategoria(
     }
 
     const categoriaMap = new Map<string, { total: number; color: string }>();
-    
+
     gastos?.forEach((gasto) => {
       const categoriaNombre = gasto.categoria?.nombre || "Sin categoría";
       const categoriaColor = gasto.categoria?.color || "#9ca3af";
-      
+
       if (categoriaMap.has(categoriaNombre)) {
         categoriaMap.get(categoriaNombre)!.total += gasto.importe;
       } else {
-        categoriaMap.set(categoriaNombre, { total: gasto.importe, color: categoriaColor });
+        categoriaMap.set(categoriaNombre, {
+          total: gasto.importe,
+          color: categoriaColor,
+        });
       }
     });
 
-    const result: GastosPorCategoria[] = Array.from(categoriaMap.entries()).map(
-      ([categoria, { total, color }]) => ({
+    const result: GastosPorCategoria[] = Array.from(categoriaMap.entries())
+      .map(([categoria, { total, color }]) => ({
         categoria,
         total,
         color,
-      })
-    ).sort((a, b) => b.total - a.total);
+      }))
+      .sort((a, b) => b.total - a.total);
 
     return createSuccessResult(result);
   } catch {
@@ -294,10 +321,65 @@ export async function getGastosPorCategoria(
   }
 }
 
+export interface MonthWithInvoices {
+  month: number;
+  year: number;
+  count: number;
+}
+
+export async function getMonthsWithInvoices(): Promise<
+  ActionResult<MonthWithInvoices[]>
+> {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (!user) {
+      return createErrorResult(authError);
+    }
+
+    const supabase = await createClient();
+
+    const { data: facturas, error } = await supabase
+      .from("facturas")
+      .select("fecha")
+      .eq("user_id", user.id)
+      .order("fecha", { ascending: false });
+
+    if (error) {
+      return createErrorResult(error.message);
+    }
+
+    const monthMap = new Map<string, MonthWithInvoices>();
+
+    facturas?.forEach((factura) => {
+      if (!factura.fecha) return;
+      // fecha is a Postgres DATE string "YYYY-MM-DD" – extract directly to avoid timezone issues
+      const [yearStr, monthStr] = factura.fecha.split("-");
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      const key = `${year}-${month}`;
+
+      if (monthMap.has(key)) {
+        monthMap.get(key)!.count++;
+      } else {
+        monthMap.set(key, { month, year, count: 1 });
+      }
+    });
+
+    const result = Array.from(monthMap.values()).sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      return b.month - a.month;
+    });
+
+    return createSuccessResult(result);
+  } catch {
+    return createErrorResult("Error al obtener meses con facturas");
+  }
+}
+
 export async function getTopClientes(
   month: number,
   year: number,
-  limit: number = 5
+  limit: number = 5,
 ): Promise<ActionResult<TopCliente[]>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -306,15 +388,18 @@ export async function getTopClientes(
     }
 
     const supabase = await createClient();
-    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
-    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
     const { data: facturas, error } = await supabase
       .from("facturas")
-      .select(`
+      .select(
+        `
         total,
         cliente:clientes(id, nombre)
-      `)
+      `,
+      )
       .eq("user_id", user.id)
       .eq("estado", "pagada")
       .gte("fecha", startDate)
@@ -325,16 +410,19 @@ export async function getTopClientes(
     }
 
     const clienteMap = new Map<string, { nombre: string; total: number }>();
-    
+
     facturas?.forEach((factura) => {
       if (factura.cliente) {
         const clienteId = factura.cliente.id;
         const clienteNombre = factura.cliente.nombre;
-        
+
         if (clienteMap.has(clienteId)) {
           clienteMap.get(clienteId)!.total += factura.total;
         } else {
-          clienteMap.set(clienteId, { nombre: clienteNombre, total: factura.total });
+          clienteMap.set(clienteId, {
+            nombre: clienteNombre,
+            total: factura.total,
+          });
         }
       }
     });
