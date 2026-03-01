@@ -50,7 +50,7 @@ function getStatusBadge(estado: EstadoFactura) {
 }
 
 interface DashboardPageProps {
-  searchParams: Promise<{ month?: string; year?: string }>;
+  searchParams: Promise<{ month?: string; year?: string; all?: string }>;
 }
 
 export default async function DashboardPage({

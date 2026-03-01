@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -27,26 +27,17 @@ export function MonthSelector({
   isAll = false,
 }: MonthSelectorProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isNavigating, setIsNavigating] = useState(false);
-
-  // Reset spinner when navigation completes (searchParams change)
-  useEffect(() => {
-    setIsNavigating(false);
-  }, [searchParams]);
+  const [isPending, startTransition] = useTransition();
 
   const handleChange = (value: string) => {
-    setIsNavigating(true);
-    if (value === "all") {
-      router.push("/dashboard?all=true");
-      return;
-    }
-    const [year, month] = value.split("-").map(Number);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("month", month.toString());
-    params.set("year", year.toString());
-    params.delete("all");
-    router.push(`/dashboard?${params.toString()}`);
+    startTransition(() => {
+      if (value === "all") {
+        router.push("/dashboard?all=true");
+        return;
+      }
+      const [year, month] = value.split("-").map(Number);
+      router.push(`/dashboard?month=${month}&year=${year}`);
+    });
   };
 
   const currentValue = isAll ? "all" : `${currentYear}-${currentMonth}`;
@@ -55,10 +46,10 @@ export function MonthSelector({
     <Select
       value={currentValue}
       onValueChange={handleChange}
-      disabled={isNavigating}
+      disabled={isPending}
     >
       <SelectTrigger className="w-[200px]">
-        {isNavigating ? (
+        {isPending ? (
           <span
             className="flex items-center gap-2 text-neutral-500"
             style={{ display: "flex" }}
