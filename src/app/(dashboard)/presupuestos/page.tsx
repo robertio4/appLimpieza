@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -72,8 +72,6 @@ export default function PresupuestosPage() {
   const [filterPeriodType, setFilterPeriodType] = useState<"month" | "quarter" | "year">("month");
   const [filterMonth, setFilterMonth] = useState("all");
   const [filterQuarter, setFilterQuarter] = useState("1");
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
@@ -94,44 +92,44 @@ export default function PresupuestosPage() {
         value: month.toString(),
         label: monthName.charAt(0).toUpperCase() + monthName.slice(1),
       };
-    });
+    })
+    .sort((a, b) => Number(a.value) - Number(b.value));
 
-  // Calculate date range based on filters
-  const calculateDateRange = useCallback(() => {
+  // Calculate date range based on filters (synchronous, avoids double-fetch)
+  const { filterStartDate, filterEndDate } = useMemo(() => {
     if (!filterYear || filterYear === "all") {
-      setFilterStartDate("");
-      setFilterEndDate("");
-      return;
+      return { filterStartDate: "", filterEndDate: "" };
     }
-
     const year = parseInt(filterYear);
-
     if (filterPeriodType === "year") {
-      setFilterStartDate(`${year}-01-01`);
-      setFilterEndDate(`${year}-12-31`);
+      return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
     } else if (filterPeriodType === "quarter") {
       const quarter = parseInt(filterQuarter);
       const startMonth = (quarter - 1) * 3 + 1;
       const endMonth = startMonth + 2;
       const lastDay = new Date(year, endMonth, 0).getDate();
-      setFilterStartDate(`${year}-${String(startMonth).padStart(2, "0")}-01`);
-      setFilterEndDate(`${year}-${String(endMonth).padStart(2, "0")}-${lastDay}`);
+      return {
+        filterStartDate: `${year}-${String(startMonth).padStart(2, "0")}-01`,
+        filterEndDate: `${year}-${String(endMonth).padStart(2, "0")}-${lastDay}`,
+      };
     } else {
       if (filterMonth === "all") {
-        setFilterStartDate(`${year}-01-01`);
-        setFilterEndDate(`${year}-12-31`);
+        return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
       } else {
         const month = parseInt(filterMonth);
         const lastDay = new Date(year, month, 0).getDate();
-        setFilterStartDate(`${year}-${String(month).padStart(2, "0")}-01`);
-        setFilterEndDate(`${year}-${String(month).padStart(2, "0")}-${lastDay}`);
+        return {
+          filterStartDate: `${year}-${String(month).padStart(2, "0")}-01`,
+          filterEndDate: `${year}-${String(month).padStart(2, "0")}-${lastDay}`,
+        };
       }
     }
   }, [filterYear, filterPeriodType, filterMonth, filterQuarter]);
 
+  // Reset filterMonth when filterYear changes to avoid stale month selection
   useEffect(() => {
-    calculateDateRange();
-  }, [calculateDateRange]);
+    setFilterMonth("all");
+  }, [filterYear]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -149,9 +147,12 @@ export default function PresupuestosPage() {
     const result = await getAvailableMonthsPresupuestos();
     if (result.success) {
       setAvailableMonths(result.data);
-      if (result.data.length === 0) {
-        setFilterYear("all");
-      }
+      const years = Array.from(new Set(result.data.map((ym: string) => ym.split("-")[0])));
+      setFilterYear((currentYear) => {
+        if (result.data.length === 0) return "all";
+        if (!years.includes(currentYear)) return years[0];
+        return currentYear;
+      });
     }
   }, []);
 
@@ -368,8 +369,6 @@ export default function PresupuestosPage() {
     setFilterPeriodType("month");
     setFilterMonth("all");
     setFilterQuarter("1");
-    setFilterStartDate("");
-    setFilterEndDate("");
     setFilterEstado("");
     setFilterCliente("");
   };
