@@ -390,7 +390,7 @@ export default function FacturaDetailPage() {
               {/* Header */}
               <div className="hidden md:grid grid-cols-12 gap-2 px-2 text-sm font-medium text-neutral-600">
                 <div className="col-span-6">Concepto</div>
-                <div className="col-span-1 text-center">Cantidad</div>
+                <div className="col-span-1 text-right">Cantidad</div>
                 <div className="col-span-2 text-right">Precio</div>
                 <div className="col-span-2 text-right">Total</div>
                 <div className="col-span-1"></div>
