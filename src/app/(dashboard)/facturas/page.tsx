@@ -139,10 +139,11 @@ export default function FacturasPage() {
   }, []);
 
   // Compute available years and months from all facturas (only periods with actual invoices)
+  // Parse fecha as 'YYYY-MM-DD' string to avoid timezone-related date shifts
   const availableYears = useMemo(() => {
     const years = new Set<number>();
     allFacturas.forEach((f) => {
-      const year = new Date(f.fecha).getFullYear();
+      const year = parseInt(f.fecha.slice(0, 4), 10);
       years.add(year);
     });
     return Array.from(years).sort((a, b) => b - a);
@@ -152,9 +153,10 @@ export default function FacturasPage() {
     const months = new Set<number>();
     const year = parseInt(selectedYear);
     allFacturas.forEach((f) => {
-      const date = new Date(f.fecha);
-      if (date.getFullYear() === year) {
-        months.add(date.getMonth() + 1);
+      const fechaYear = parseInt(f.fecha.slice(0, 4), 10);
+      const fechaMonth = parseInt(f.fecha.slice(5, 7), 10);
+      if (fechaYear === year) {
+        months.add(fechaMonth);
       }
     });
     return Array.from(months).sort((a, b) => a - b);
@@ -164,9 +166,10 @@ export default function FacturasPage() {
     const quarters = new Set<number>();
     const year = parseInt(selectedYear);
     allFacturas.forEach((f) => {
-      const date = new Date(f.fecha);
-      if (date.getFullYear() === year) {
-        const quarter = Math.ceil((date.getMonth() + 1) / 3);
+      const fechaYear = parseInt(f.fecha.slice(0, 4), 10);
+      const fechaMonth = parseInt(f.fecha.slice(5, 7), 10);
+      if (fechaYear === year) {
+        const quarter = Math.ceil(fechaMonth / 3);
         quarters.add(quarter);
       }
     });
@@ -1003,16 +1006,14 @@ export default function FacturasPage() {
                         id={`download-cliente-${cliente.id}`}
                         checked={downloadSelectedClientes.includes(cliente.id)}
                         onCheckedChange={(checked) => {
-                          if (checked) {
-                            setDownloadSelectedClientes([
-                              ...downloadSelectedClientes,
-                              cliente.id,
-                            ]);
-                          } else {
-                            setDownloadSelectedClientes(
-                              downloadSelectedClientes.filter(
-                                (id) => id !== cliente.id,
-                              ),
+                          if (checked === true) {
+                            setDownloadSelectedClientes((prev) => {
+                              if (prev.includes(cliente.id)) return prev;
+                              return [...prev, cliente.id];
+                            });
+                          } else if (checked === false) {
+                            setDownloadSelectedClientes((prev) =>
+                              prev.filter((id) => id !== cliente.id),
                             );
                           }
                         }}
@@ -1048,7 +1049,7 @@ export default function FacturasPage() {
             </Button>
             <Button
               onClick={handleDownloadPeriod}
-              disabled={isDownloadingPeriod}
+              disabled={isDownloadingPeriod || downloadSelectedClientes.length === 0}
             >
               {isDownloadingPeriod ? (
                 <>
