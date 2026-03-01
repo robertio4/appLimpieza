@@ -46,7 +46,7 @@ export default function NuevaFacturaPage() {
   // Form fields
   const [clienteId, setClienteId] = useState<string>("");
   const [fecha, setFecha] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [fechaVencimiento, setFechaVencimiento] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
@@ -92,7 +92,7 @@ export default function NuevaFacturaPage() {
   const handleLineaChange = (
     id: string,
     field: keyof LineaForm,
-    value: string | number
+    value: string | number,
   ) => {
     setLineas(
       lineas.map((l) => {
@@ -100,7 +100,7 @@ export default function NuevaFacturaPage() {
           return { ...l, [field]: value };
         }
         return l;
-      })
+      }),
     );
   };
 
@@ -110,7 +110,7 @@ export default function NuevaFacturaPage() {
 
   const subtotal = lineas.reduce(
     (sum, linea) => sum + calculateLineaTotal(linea),
-    0
+    0,
   );
   const iva = subtotal * (IVA_PERCENTAGE / 100);
   const total = subtotal + iva;
@@ -124,7 +124,7 @@ export default function NuevaFacturaPage() {
     }
 
     const validLineas = lineas.filter(
-      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0
+      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0,
     );
 
     if (validLineas.length === 0) {
@@ -167,7 +167,7 @@ export default function NuevaFacturaPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -253,8 +253,8 @@ export default function NuevaFacturaPage() {
           <div className="space-y-4">
             {/* Header */}
             <div className="hidden md:grid grid-cols-12 gap-2 px-2 text-sm font-medium text-neutral-600">
-              <div className="col-span-5">Concepto</div>
-              <div className="col-span-2 text-center">Cantidad</div>
+              <div className="col-span-6">Concepto</div>
+              <div className="col-span-1 text-center">Cantidad</div>
               <div className="col-span-2 text-right">Precio</div>
               <div className="col-span-2 text-right">Total</div>
               <div className="col-span-1"></div>
@@ -266,7 +266,7 @@ export default function NuevaFacturaPage() {
                 key={linea.id}
                 className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start p-2 bg-neutral-50 rounded-lg"
               >
-                <div className="md:col-span-5 space-y-1">
+                <div className="md:col-span-6 space-y-1">
                   <Label className="md:hidden text-xs text-neutral-500">
                     Concepto
                   </Label>
@@ -278,7 +278,7 @@ export default function NuevaFacturaPage() {
                     }
                   />
                 </div>
-                <div className="md:col-span-2 space-y-1">
+                <div className="md:col-span-1 space-y-1">
                   <Label className="md:hidden text-xs text-neutral-500">
                     Cantidad
                   </Label>
@@ -286,13 +286,13 @@ export default function NuevaFacturaPage() {
                     type="number"
                     min="1"
                     step="1"
-                    className="text-center"
+                    className="text-right"
                     value={linea.cantidad}
                     onChange={(e) =>
                       handleLineaChange(
                         linea.id,
                         "cantidad",
-                        parseInt(e.target.value) || 0
+                        parseInt(e.target.value) || 0,
                       )
                     }
                   />
@@ -311,7 +311,7 @@ export default function NuevaFacturaPage() {
                       handleLineaChange(
                         linea.id,
                         "precio_unitario",
-                        parseFloat(e.target.value) || 0
+                        parseFloat(e.target.value) || 0,
                       )
                     }
                   />
@@ -348,7 +348,9 @@ export default function NuevaFacturaPage() {
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between px-3 py-2 bg-neutral-50 rounded">
-                <span className="text-neutral-600">IVA ({IVA_PERCENTAGE}%)</span>
+                <span className="text-neutral-600">
+                  IVA ({IVA_PERCENTAGE}%)
+                </span>
                 <span className="font-medium">{formatCurrency(iva)}</span>
               </div>
               <div className="flex justify-between px-3 py-3 bg-neutral-900 text-white rounded">
