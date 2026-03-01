@@ -330,7 +330,7 @@ export default function FacturaDetailPage() {
       {/* Invoice Preview / Edit Form */}
       {isEditing ? (
         // Edit Form
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6">
           {/* Basic Info */}
           <div className="rounded-lg border border-neutral-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">
@@ -389,8 +389,8 @@ export default function FacturaDetailPage() {
             <div className="space-y-4">
               {/* Header */}
               <div className="hidden md:grid grid-cols-12 gap-2 px-2 text-sm font-medium text-neutral-600">
-                <div className="col-span-5">Concepto</div>
-                <div className="col-span-2 text-center">Cantidad</div>
+                <div className="col-span-6">Concepto</div>
+                <div className="col-span-1 text-right">Cantidad</div>
                 <div className="col-span-2 text-right">Precio</div>
                 <div className="col-span-2 text-right">Total</div>
                 <div className="col-span-1"></div>
@@ -402,19 +402,29 @@ export default function FacturaDetailPage() {
                   key={linea.id}
                   className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start p-2 bg-neutral-50 rounded-lg"
                 >
-                  <div className="md:col-span-5 space-y-1">
+                  <div className="md:col-span-6 space-y-1">
                     <Label className="md:hidden text-xs text-neutral-500">
                       Concepto
                     </Label>
-                    <Input
+                    <Textarea
                       placeholder="Descripción del servicio..."
                       value={linea.concepto}
-                      onChange={(e) =>
-                        handleLineaChange(linea.id, "concepto", e.target.value)
-                      }
+                      onChange={(e) => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                        handleLineaChange(linea.id, "concepto", e.target.value);
+                      }}
+                      ref={(el) => {
+                        if (el) {
+                          el.style.height = "auto";
+                          el.style.height = el.scrollHeight + "px";
+                        }
+                      }}
+                      rows={1}
+                      className="resize-none overflow-hidden min-h-[38px]"
                     />
                   </div>
-                  <div className="md:col-span-2 space-y-1">
+                  <div className="md:col-span-1 space-y-1">
                     <Label className="md:hidden text-xs text-neutral-500">
                       Cantidad
                     </Label>
@@ -422,7 +432,7 @@ export default function FacturaDetailPage() {
                       type="number"
                       min="1"
                       step="1"
-                      className="text-center"
+                      className="text-right"
                       value={linea.cantidad}
                       onChange={(e) =>
                         handleLineaChange(
@@ -715,16 +725,6 @@ export default function FacturaDetailPage() {
           }
           .print\\:hidden {
             display: none !important;
-          }
-          .max-w-4xl {
-            visibility: visible;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .max-w-4xl * {
-            visibility: visible;
           }
         }
       `}</style>

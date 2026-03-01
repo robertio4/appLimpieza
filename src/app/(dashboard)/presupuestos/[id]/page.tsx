@@ -452,7 +452,7 @@ export default function PresupuestoDetailPage() {
       {/* Presupuesto Preview / Edit Form */}
       {isEditing ? (
         // Edit Form
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6">
           {/* Basic Info */}
           <div className="rounded-lg border border-neutral-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">
@@ -529,12 +529,22 @@ export default function PresupuestoDetailPage() {
                     <Label className="md:hidden text-xs text-neutral-500">
                       Concepto
                     </Label>
-                    <Input
+                    <Textarea
                       placeholder="Descripción del servicio..."
                       value={linea.concepto}
-                      onChange={(e) =>
-                        handleLineaChange(linea.id, "concepto", e.target.value)
-                      }
+                      onChange={(e) => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
+                        handleLineaChange(linea.id, "concepto", e.target.value);
+                      }}
+                      ref={(el) => {
+                        if (el) {
+                          el.style.height = "auto";
+                          el.style.height = el.scrollHeight + "px";
+                        }
+                      }}
+                      rows={1}
+                      className="resize-none overflow-hidden min-h-[38px]"
                     />
                   </div>
                   <div className="md:col-span-2 space-y-1">
@@ -841,16 +851,6 @@ export default function PresupuestoDetailPage() {
           }
           .print\\:hidden {
             display: none !important;
-          }
-          .max-w-4xl {
-            visibility: visible;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .max-w-4xl * {
-            visibility: visible;
           }
         }
       `}</style>

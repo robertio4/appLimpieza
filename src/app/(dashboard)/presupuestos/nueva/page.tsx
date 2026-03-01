@@ -52,9 +52,11 @@ export default function NuevoPresupuestoPage() {
   // Form fields
   const [clienteId, setClienteId] = useState<string>("");
   const [fecha, setFecha] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
-  const [fechaValidez, setFechaValidez] = useState<string>(getDefaultFechaValidez());
+  const [fechaValidez, setFechaValidez] = useState<string>(
+    getDefaultFechaValidez(),
+  );
   const [notas, setNotas] = useState<string>("");
   const [lineas, setLineas] = useState<LineaForm[]>([
     { id: generateId(), concepto: "", cantidad: 1, precio_unitario: 0 },
@@ -98,7 +100,7 @@ export default function NuevoPresupuestoPage() {
   const handleLineaChange = (
     id: string,
     field: keyof LineaForm,
-    value: string | number
+    value: string | number,
   ) => {
     setLineas(
       lineas.map((l) => {
@@ -106,7 +108,7 @@ export default function NuevoPresupuestoPage() {
           return { ...l, [field]: value };
         }
         return l;
-      })
+      }),
     );
   };
 
@@ -116,7 +118,7 @@ export default function NuevoPresupuestoPage() {
 
   const subtotal = lineas.reduce(
     (sum, linea) => sum + calculateLineaTotal(linea),
-    0
+    0,
   );
   const iva = subtotal * (IVA_PERCENTAGE / 100);
   const total = subtotal + iva;
@@ -130,7 +132,7 @@ export default function NuevoPresupuestoPage() {
     }
 
     const validLineas = lineas.filter(
-      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0
+      (l) => l.concepto.trim() && l.cantidad > 0 && l.precio_unitario > 0,
     );
 
     if (validLineas.length === 0) {
@@ -173,14 +175,16 @@ export default function NuevoPresupuestoPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Nuevo Presupuesto</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            Nuevo Presupuesto
+          </h1>
           <p className="text-neutral-600">
             {numeroPresupuesto && `Número: ${numeroPresupuesto}`}
           </p>
@@ -299,7 +303,7 @@ export default function NuevoPresupuestoPage() {
                       handleLineaChange(
                         linea.id,
                         "cantidad",
-                        parseInt(e.target.value) || 0
+                        parseInt(e.target.value) || 0,
                       )
                     }
                   />
@@ -318,7 +322,7 @@ export default function NuevoPresupuestoPage() {
                       handleLineaChange(
                         linea.id,
                         "precio_unitario",
-                        parseFloat(e.target.value) || 0
+                        parseFloat(e.target.value) || 0,
                       )
                     }
                   />
@@ -355,7 +359,9 @@ export default function NuevoPresupuestoPage() {
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between px-3 py-2 bg-neutral-50 rounded">
-                <span className="text-neutral-600">IVA ({IVA_PERCENTAGE}%)</span>
+                <span className="text-neutral-600">
+                  IVA ({IVA_PERCENTAGE}%)
+                </span>
                 <span className="font-medium">{formatCurrency(iva)}</span>
               </div>
               <div className="flex justify-between px-3 py-3 bg-neutral-900 text-white rounded">

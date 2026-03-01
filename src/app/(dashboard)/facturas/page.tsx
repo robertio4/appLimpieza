@@ -461,7 +461,11 @@ export default function FacturasPage() {
         <div className="flex gap-2">
           <Button onClick={() => setShowPeriodDialog(true)} variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            Descargar por fecha
+            Descargar
+          </Button>
+          <Button onClick={handleNewFactura}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Factura
           </Button>
           <Button
             onClick={handleGenerateRecurring}
@@ -479,10 +483,6 @@ export default function FacturasPage() {
                 Generar Recurrentes
               </>
             )}
-          </Button>
-          <Button onClick={handleNewFactura}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Factura
           </Button>
         </div>
       </div>
