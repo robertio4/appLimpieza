@@ -57,6 +57,7 @@ export default async function DashboardPage({
   searchParams,
 }: DashboardPageProps) {
   const params = await searchParams;
+  const isAll = params.all === "true";
 
   // Get months with invoices first
   const monthsResult = await getMonthsWithInvoices();
@@ -66,7 +67,10 @@ export default async function DashboardPage({
   let month: number;
   let year: number;
 
-  if (params.month && params.year) {
+  if (isAll) {
+    month = 0;
+    year = 0;
+  } else if (params.month && params.year) {
     month = parseInt(params.month);
     year = parseInt(params.year);
   } else if (availableMonths.length > 0) {
@@ -99,7 +103,7 @@ export default async function DashboardPage({
     : [];
   const topClients = topClientsResult.success ? topClientsResult.data : [];
 
-  const monthName = MONTH_NAMES[month - 1];
+  const monthName = isAll ? "todos los meses" : MONTH_NAMES[month - 1];
 
   return (
     <div className="space-y-6">
@@ -107,7 +111,7 @@ export default async function DashboardPage({
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
           <p className="text-neutral-600">
-            Resumen de {monthName} {year}
+            {isAll ? "Todos los meses" : `Resumen de ${monthName} ${year}`}
           </p>
         </div>
         {availableMonths.length > 0 && (
@@ -115,6 +119,7 @@ export default async function DashboardPage({
             months={availableMonths}
             currentMonth={month}
             currentYear={year}
+            isAll={isAll}
           />
         )}
       </div>

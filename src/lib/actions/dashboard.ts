@@ -48,18 +48,24 @@ export async function getDashboardStats(
     }
 
     const supabase = await createClient();
-    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const isAllTime = month === 0;
+    const startDate = isAllTime
+      ? null
+      : `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = isAllTime ? null : new Date(year, month, 0).getDate();
+    const endDate = isAllTime
+      ? null
+      : `${year}-${String(month).padStart(2, "0")}-${String(lastDay!).padStart(2, "0")}`;
     const today = new Date().toLocaleDateString("sv-SE");
 
-    const { data: paidInvoices, error: paidError } = await supabase
+    const paidBase = supabase
       .from("facturas")
       .select("total")
       .eq("user_id", user.id)
-      .eq("estado", "pagada")
-      .gte("fecha", startDate)
-      .lte("fecha", endDate);
+      .eq("estado", "pagada");
+    const { data: paidInvoices, error: paidError } = await (startDate && endDate
+      ? paidBase.gte("fecha", startDate).lte("fecha", endDate)
+      : paidBase);
 
     if (paidError) {
       return createErrorResult(paidError.message);
@@ -68,13 +74,15 @@ export async function getDashboardStats(
     const totalFacturado =
       paidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
-    const { data: unpaidInvoices, error: unpaidError } = await supabase
+    const unpaidBase = supabase
       .from("facturas")
       .select("total")
       .eq("user_id", user.id)
-      .eq("estado", "enviada")
-      .gte("fecha", startDate)
-      .lte("fecha", endDate);
+      .eq("estado", "enviada");
+    const { data: unpaidInvoices, error: unpaidError } = await (startDate &&
+    endDate
+      ? unpaidBase.gte("fecha", startDate).lte("fecha", endDate)
+      : unpaidBase);
 
     if (unpaidError) {
       return createErrorResult(unpaidError.message);
@@ -83,12 +91,13 @@ export async function getDashboardStats(
     const pendienteCobro =
       unpaidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
-    const { data: gastos, error: gastosError } = await supabase
+    const gastosStatBase = supabase
       .from("gastos")
       .select("importe")
-      .eq("user_id", user.id)
-      .gte("fecha", startDate)
-      .lte("fecha", endDate);
+      .eq("user_id", user.id);
+    const { data: gastos, error: gastosError } = await (startDate && endDate
+      ? gastosStatBase.gte("fecha", startDate).lte("fecha", endDate)
+      : gastosStatBase);
 
     if (gastosError) {
       return createErrorResult(gastosError.message);
@@ -146,12 +155,13 @@ export async function getDashboardStats(
     const ticketPromedio =
       totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
 
-    const { data: activeClients } = await supabase
+    const activeClientsBase = supabase
       .from("facturas")
       .select("cliente_id")
-      .eq("user_id", user.id)
-      .gte("fecha", startDate)
-      .lte("fecha", endDate);
+      .eq("user_id", user.id);
+    const { data: activeClients } = await (startDate && endDate
+      ? activeClientsBase.gte("fecha", startDate).lte("fecha", endDate)
+      : activeClientsBase);
 
     const clientesActivos = activeClients
       ? new Set(activeClients.map((f) => f.cliente_id)).size
@@ -271,11 +281,16 @@ export async function getGastosPorCategoria(
     }
 
     const supabase = await createClient();
-    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const isAllTime = month === 0;
+    const startDate = isAllTime
+      ? null
+      : `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = isAllTime ? null : new Date(year, month, 0).getDate();
+    const endDate = isAllTime
+      ? null
+      : `${year}-${String(month).padStart(2, "0")}-${String(lastDay!).padStart(2, "0")}`;
 
-    const { data: gastos, error } = await supabase
+    const gastosBase = supabase
       .from("gastos")
       .select(
         `
@@ -283,9 +298,10 @@ export async function getGastosPorCategoria(
         categoria:categorias_gasto(nombre, color)
       `,
       )
-      .eq("user_id", user.id)
-      .gte("fecha", startDate)
-      .lte("fecha", endDate);
+      .eq("user_id", user.id);
+    const { data: gastos, error } = await (startDate && endDate
+      ? gastosBase.gte("fecha", startDate).lte("fecha", endDate)
+      : gastosBase);
 
     if (error) {
       return createErrorResult(error.message);
@@ -388,11 +404,16 @@ export async function getTopClientes(
     }
 
     const supabase = await createClient();
-    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const isAllTime = month === 0;
+    const startDate = isAllTime
+      ? null
+      : `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = isAllTime ? null : new Date(year, month, 0).getDate();
+    const endDate = isAllTime
+      ? null
+      : `${year}-${String(month).padStart(2, "0")}-${String(lastDay!).padStart(2, "0")}`;
 
-    const { data: facturas, error } = await supabase
+    const facturasBase = supabase
       .from("facturas")
       .select(
         `
@@ -401,9 +422,10 @@ export async function getTopClientes(
       `,
       )
       .eq("user_id", user.id)
-      .eq("estado", "pagada")
-      .gte("fecha", startDate)
-      .lte("fecha", endDate);
+      .eq("estado", "pagada");
+    const { data: facturas, error } = await (startDate && endDate
+      ? facturasBase.gte("fecha", startDate).lte("fecha", endDate)
+      : facturasBase);
 
     if (error) {
       return createErrorResult(error.message);

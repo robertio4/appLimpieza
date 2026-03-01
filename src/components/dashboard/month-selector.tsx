@@ -15,25 +15,32 @@ interface MonthSelectorProps {
   months: MonthWithInvoices[];
   currentMonth: number;
   currentYear: number;
+  isAll?: boolean;
 }
 
 export function MonthSelector({
   months,
   currentMonth,
   currentYear,
+  isAll = false,
 }: MonthSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const handleChange = (value: string) => {
+    if (value === "all") {
+      router.push("/dashboard?all=true");
+      return;
+    }
     const [year, month] = value.split("-").map(Number);
     const params = new URLSearchParams(searchParams.toString());
     params.set("month", month.toString());
     params.set("year", year.toString());
+    params.delete("all");
     router.push(`/dashboard?${params.toString()}`);
   };
 
-  const currentValue = `${currentYear}-${currentMonth}`;
+  const currentValue = isAll ? "all" : `${currentYear}-${currentMonth}`;
 
   return (
     <Select value={currentValue} onValueChange={handleChange}>
@@ -41,8 +48,12 @@ export function MonthSelector({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="all">Todos los meses</SelectItem>
         {months.map((m) => (
-          <SelectItem key={`${m.year}-${m.month}`} value={`${m.year}-${m.month}`}>
+          <SelectItem
+            key={`${m.year}-${m.month}`}
+            value={`${m.year}-${m.month}`}
+          >
             {MONTH_NAMES[m.month - 1]} {m.year} ({m.count})
           </SelectItem>
         ))}
