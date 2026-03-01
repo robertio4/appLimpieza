@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Select,
@@ -8,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { MONTH_NAMES } from "@/lib/constants";
 import type { MonthWithInvoices } from "@/lib/actions/dashboard";
 
@@ -26,8 +28,15 @@ export function MonthSelector({
 }: MonthSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Reset spinner when navigation completes (searchParams change)
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [searchParams]);
 
   const handleChange = (value: string) => {
+    setIsNavigating(true);
     if (value === "all") {
       router.push("/dashboard?all=true");
       return;
@@ -43,9 +52,23 @@ export function MonthSelector({
   const currentValue = isAll ? "all" : `${currentYear}-${currentMonth}`;
 
   return (
-    <Select value={currentValue} onValueChange={handleChange}>
+    <Select
+      value={currentValue}
+      onValueChange={handleChange}
+      disabled={isNavigating}
+    >
       <SelectTrigger className="w-[200px]">
-        <SelectValue />
+        {isNavigating ? (
+          <span
+            className="flex items-center gap-2 text-neutral-500"
+            style={{ display: "flex" }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Cargando...
+          </span>
+        ) : (
+          <SelectValue />
+        )}
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="all">Todos los meses</SelectItem>

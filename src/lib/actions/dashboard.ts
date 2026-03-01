@@ -255,7 +255,8 @@ export async function getMonthlyTotals(
         .gte("fecha", startDate)
         .lte("fecha", endDate);
 
-      const pendiente = pendienteInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
+      const pendiente =
+        pendienteInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
 
       const { data: gastos } = await supabase
         .from("gastos")
