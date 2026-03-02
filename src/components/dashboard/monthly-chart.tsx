@@ -42,6 +42,7 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       const ingresos = payload.find((p) => p.dataKey === "ingresos");
+      const pendiente = payload.find((p) => p.dataKey === "pendiente");
       const gastos = payload.find((p) => p.dataKey === "gastos");
       const balance = (ingresos?.value || 0) - (gastos?.value || 0);
 
@@ -56,6 +57,15 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
               </span>
               <span className="text-sm font-semibold text-emerald-600">
                 {formatCurrency(ingresos?.value || 0)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                Pendiente:
+              </span>
+              <span className="text-sm font-semibold text-blue-600">
+                {formatCurrency(pendiente?.value || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4">
@@ -99,6 +109,10 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
             <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
             <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
           </linearGradient>
+          <linearGradient id="colorPendiente" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+          </linearGradient>
         </defs>
         <CartesianGrid
           strokeDasharray="3 3"
@@ -127,6 +141,16 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
           stroke="#10b981"
           strokeWidth={3}
           dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+          activeDot={{ r: 6, strokeWidth: 2 }}
+        />
+        <Area
+          type="monotone"
+          dataKey="pendiente"
+          name="Pendiente"
+          fill="url(#colorPendiente)"
+          stroke="#3b82f6"
+          strokeWidth={3}
+          dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
           activeDot={{ r: 6, strokeWidth: 2 }}
         />
         <Area

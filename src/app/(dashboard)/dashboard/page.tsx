@@ -7,16 +7,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  getDashboardStats, 
+import {
+  getDashboardStats,
   getMonthlyTotals,
   getGastosPorCategoria,
-  getTopClientes 
+  getTopClientes,
+  getMonthsWithInvoices,
 } from "@/lib/actions/dashboard";
 import { MonthlyChart } from "@/components/dashboard/monthly-chart";
 import { ExpenseCategoryChart } from "@/components/dashboard/expense-category-chart";
 import { TopClientsChart } from "@/components/dashboard/top-clients-chart";
-import { formatCurrency, formatDate, estadoBadgeStyles, estadoLabels } from "@/lib/utils";
+import { MonthSelector } from "@/components/dashboard/month-selector";
+import {
+  formatCurrency,
+  formatDate,
+  estadoBadgeStyles,
+  estadoLabels,
+} from "@/lib/utils";
+import { MONTH_NAMES } from "@/lib/constants";
 import type { EstadoFactura } from "@/types/database";
 import {
   AlertTriangle,
@@ -41,12 +49,47 @@ function getStatusBadge(estado: EstadoFactura) {
   );
 }
 
-export default async function DashboardPage() {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+interface DashboardPageProps {
+  searchParams: Promise<{ month?: string; year?: string; all?: string }>;
+}
 
-  const [statsResult, monthlyResult, expensesByCategoryResult, topClientsResult] = await Promise.all([
+export default async function DashboardPage({
+  searchParams,
+}: DashboardPageProps) {
+  const params = await searchParams;
+  const isAll = params.all === "true";
+
+  // Get months with invoices first
+  const monthsResult = await getMonthsWithInvoices();
+  const availableMonths = monthsResult.success ? monthsResult.data : [];
+
+  // Determine which month/year to show
+  let month: number;
+  let year: number;
+
+  if (isAll) {
+    month = 0;
+    year = 0;
+  } else if (params.month && params.year) {
+    month = parseInt(params.month);
+    year = parseInt(params.year);
+  } else if (availableMonths.length > 0) {
+    // Default to the most recent month with invoices
+    month = availableMonths[0].month;
+    year = availableMonths[0].year;
+  } else {
+    // Fallback to current month if no invoices
+    const now = new Date();
+    month = now.getMonth() + 1;
+    year = now.getFullYear();
+  }
+
+  const [
+    statsResult,
+    monthlyResult,
+    expensesByCategoryResult,
+    topClientsResult,
+  ] = await Promise.all([
     getDashboardStats(month, year),
     getMonthlyTotals(6),
     getGastosPorCategoria(month, year),
@@ -55,76 +98,93 @@ export default async function DashboardPage() {
 
   const stats = statsResult.success ? statsResult.data : null;
   const monthlyData = monthlyResult.success ? monthlyResult.data : [];
-  const expensesByCategory = expensesByCategoryResult.success ? expensesByCategoryResult.data : [];
+  const expensesByCategory = expensesByCategoryResult.success
+    ? expensesByCategoryResult.data
+    : [];
   const topClients = topClientsResult.success ? topClientsResult.data : [];
 
-  const monthName = now.toLocaleDateString("es-ES", { month: "long" });
+  const monthName = isAll ? "todos los meses" : MONTH_NAMES[month - 1];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
-        <p className="text-neutral-600">
-          Resumen de {monthName} {year}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
+          <p className="text-neutral-600">
+            {isAll ? "Todos los meses" : `Resumen de ${monthName} ${year}`}
+          </p>
+        </div>
+        {availableMonths.length > 0 && (
+          <MonthSelector
+            months={availableMonths}
+            currentMonth={month}
+            currentYear={year}
+            isAll={isAll}
+          />
+        )}
       </div>
 
       {/* Alerts Section */}
-      {stats && (stats.facturasVencidas.length > 0 || stats.facturasBorrador > 0) && (
-        <div className="space-y-3">
-          {stats.facturasVencidas.length > 0 && (
-            <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-              <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-red-800">
-                  {stats.facturasVencidas.length} factura
-                  {stats.facturasVencidas.length > 1 ? "s" : ""} vencida
-                  {stats.facturasVencidas.length > 1 ? "s" : ""}
-                </p>
-                <ul className="mt-2 space-y-1">
-                  {stats.facturasVencidas.slice(0, 3).map((factura) => (
-                    <li key={factura.id} className="text-sm text-red-700">
-                      <Link
-                        href={`/facturas/${factura.id}`}
-                        className="hover:underline"
-                      >
-                        {factura.numero} - {factura.cliente.nombre} -{" "}
-                        {formatCurrency(factura.total)} (vencida{" "}
-                        {formatDate(factura.fecha_vencimiento!)})
-                      </Link>
-                    </li>
-                  ))}
-                  {stats.facturasVencidas.length > 3 && (
-                    <li className="text-sm text-red-600">
-                      <Link href="/facturas?estado=enviada" className="hover:underline">
-                        Ver todas las facturas vencidas...
-                      </Link>
-                    </li>
-                  )}
-                </ul>
+      {stats &&
+        (stats.facturasVencidas.length > 0 || stats.facturasBorrador > 0) && (
+          <div className="space-y-3">
+            {stats.facturasVencidas.length > 0 && (
+              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-800">
+                    {stats.facturasVencidas.length} factura
+                    {stats.facturasVencidas.length > 1 ? "s" : ""} vencida
+                    {stats.facturasVencidas.length > 1 ? "s" : ""}
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {stats.facturasVencidas.slice(0, 3).map((factura) => (
+                      <li key={factura.id} className="text-sm text-red-700">
+                        <Link
+                          href={`/facturas/${factura.id}`}
+                          className="hover:underline"
+                        >
+                          {factura.numero} - {factura.cliente.nombre} -{" "}
+                          {formatCurrency(factura.total)} (vencida{" "}
+                          {formatDate(factura.fecha_vencimiento!)})
+                        </Link>
+                      </li>
+                    ))}
+                    {stats.facturasVencidas.length > 3 && (
+                      <li className="text-sm text-red-600">
+                        <Link
+                          href="/facturas?estado=enviada"
+                          className="hover:underline"
+                        >
+                          Ver todas las facturas vencidas...
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {stats.facturasBorrador > 0 && (
-            <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <FileText className="h-5 w-5 text-amber-600" />
-              <div className="flex-1">
-                <p className="font-medium text-amber-800">
-                  {stats.facturasBorrador} factura
-                  {stats.facturasBorrador > 1 ? "s" : ""} en borrador pendiente
-                  {stats.facturasBorrador > 1 ? "s" : ""} de enviar
-                </p>
+            {stats.facturasBorrador > 0 && (
+              <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <FileText className="h-5 w-5 text-amber-600" />
+                <div className="flex-1">
+                  <p className="font-medium text-amber-800">
+                    {stats.facturasBorrador} factura
+                    {stats.facturasBorrador > 1 ? "s" : ""} en borrador
+                    pendiente
+                    {stats.facturasBorrador > 1 ? "s" : ""} de enviar
+                  </p>
+                </div>
+                <Link href="/facturas?estado=borrador">
+                  <Button variant="outline" size="sm">
+                    Ver
+                  </Button>
+                </Link>
               </div>
-              <Link href="/facturas?estado=borrador">
-                <Button variant="outline" size="sm">
-                  Ver
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -173,7 +233,9 @@ export default async function DashboardPage() {
             <p className="text-2xl font-bold text-neutral-900">
               {formatCurrency(stats?.totalGastos || 0)}
             </p>
-            <p className="text-xs text-neutral-500 mt-1">Gastos en {monthName}</p>
+            <p className="text-xs text-neutral-500 mt-1">
+              Gastos en {monthName}
+            </p>
           </CardContent>
         </Card>
 
@@ -212,9 +274,7 @@ export default async function DashboardPage() {
             <p className="text-2xl font-bold text-neutral-900">
               {formatCurrency(stats?.ticketPromedio || 0)}
             </p>
-            <p className="text-xs text-neutral-500 mt-1">
-              Por factura pagada
-            </p>
+            <p className="text-xs text-neutral-500 mt-1">Por factura pagada</p>
           </CardContent>
         </Card>
 
@@ -229,9 +289,7 @@ export default async function DashboardPage() {
             <p className="text-2xl font-bold text-neutral-900">
               {stats?.clientesActivos || 0}
             </p>
-            <p className="text-xs text-neutral-500 mt-1">
-              Este mes
-            </p>
+            <p className="text-xs text-neutral-500 mt-1">Este mes</p>
           </CardContent>
         </Card>
 
@@ -246,9 +304,7 @@ export default async function DashboardPage() {
             <p className="text-2xl font-bold text-neutral-900">
               {stats?.tasaCobro.toFixed(1) || 0}%
             </p>
-            <p className="text-xs text-neutral-500 mt-1">
-              Facturas pagadas
-            </p>
+            <p className="text-xs text-neutral-500 mt-1">Facturas pagadas</p>
           </CardContent>
         </Card>
       </div>
@@ -257,7 +313,9 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Evolución Financiera</CardTitle>
-          <CardDescription>Ingresos, gastos y balance de los últimos 6 meses</CardDescription>
+          <CardDescription>
+            Ingresos, gastos y balance de los últimos 6 meses
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {monthlyData.length > 0 ? (
@@ -274,27 +332,16 @@ export default async function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Gastos por Categoría</CardTitle>
-            <CardDescription>Distribución de gastos en {monthName}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ExpenseCategoryChart data={expensesByCategory} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Top 5 Clientes</CardTitle>
-            <CardDescription>Facturación por cliente en {monthName}</CardDescription>
+            <CardDescription>
+              Facturación por cliente en {monthName}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <TopClientsChart data={topClients} />
           </CardContent>
         </Card>
-      </div>
 
-      {/* Quick Lists */}
-      <div className="grid gap-6 lg:grid-cols-2">
         {/* Last Invoices */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -341,6 +388,21 @@ export default async function DashboardPage() {
                 No hay facturas registradas
               </p>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Lists */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gastos por Categoría</CardTitle>
+            <CardDescription>
+              Distribución de gastos en {monthName}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExpenseCategoryChart data={expensesByCategory} />
           </CardContent>
         </Card>
 
