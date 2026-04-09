@@ -115,9 +115,10 @@ export default function LoginPage() {
                 placeholder="tu@email.com"
                 {...register("email")}
                 aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
               />
               {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
+                <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p>
               )}
             </div>
 
@@ -129,9 +130,10 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 {...register("password")}
                 aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "password-error" : undefined}
               />
               {errors.password && (
-                <p className="text-sm text-red-600">
+                <p id="password-error" role="alert" className="text-sm text-red-600">
                   {errors.password.message}
                 </p>
               )}

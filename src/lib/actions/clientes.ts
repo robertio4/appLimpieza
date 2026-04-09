@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -12,7 +13,7 @@ import type { Cliente, ClienteInsert, ClienteUpdate } from "@/types/database";
 
 export type { ActionResult } from "@/lib/types";
 
-export async function getClientes(): Promise<ActionResult<Cliente[]>> {
+export const getClientes = cache(async (): Promise<ActionResult<Cliente[]>> => {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
     if (!user) {
@@ -34,7 +35,7 @@ export async function getClientes(): Promise<ActionResult<Cliente[]>> {
   } catch {
     return createErrorResult("Error al obtener los clientes");
   }
-}
+});
 
 export async function getCliente(id: string): Promise<ActionResult<Cliente>> {
   try {

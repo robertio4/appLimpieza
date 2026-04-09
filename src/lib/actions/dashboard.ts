@@ -58,131 +58,96 @@ export async function getDashboardStats(
       : `${year}-${String(month).padStart(2, "0")}-${String(lastDay!).padStart(2, "0")}`;
     const today = new Date().toLocaleDateString("sv-SE");
 
-    const paidBase = supabase
-      .from("facturas")
-      .select("total")
-      .eq("user_id", user.id)
-      .eq("estado", "pagada");
-    const { data: paidInvoices, error: paidError } = await (startDate && endDate
-      ? paidBase.gte("fecha", startDate).lte("fecha", endDate)
-      : paidBase);
+    // Build period-filtered query builders
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withPeriod = (q: any) =>
+      startDate && endDate ? q.gte("fecha", startDate).lte("fecha", endDate) : q;
 
-    if (paidError) {
-      return createErrorResult(paidError.message);
-    }
+    // All 8 queries fired in parallel — ~1 roundtrip instead of 8
+    const [
+      paidResult,
+      unpaidResult,
+      gastosResult,
+      overdueResult,
+      draftResult,
+      lastInvoicesResult,
+      lastExpensesResult,
+      activeClientsResult,
+    ] = await Promise.all([
+      withPeriod(
+        supabase.from("facturas").select("total").eq("user_id", user.id).eq("estado", "pagada"),
+      ),
+      withPeriod(
+        supabase.from("facturas").select("total").eq("user_id", user.id).eq("estado", "enviada"),
+      ),
+      withPeriod(
+        supabase.from("gastos").select("importe").eq("user_id", user.id),
+      ),
+      supabase
+        .from("facturas")
+        .select(`*, cliente:clientes(*)`)
+        .eq("user_id", user.id)
+        .eq("estado", "enviada")
+        .lt("fecha_vencimiento", today)
+        .order("fecha_vencimiento", { ascending: true }),
+      supabase
+        .from("facturas")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("estado", "borrador"),
+      supabase
+        .from("facturas")
+        .select(`*, cliente:clientes(*)`)
+        .eq("user_id", user.id)
+        .order("fecha", { ascending: false })
+        .limit(5),
+      supabase
+        .from("gastos")
+        .select(`*, categoria:categorias_gasto(*)`)
+        .eq("user_id", user.id)
+        .order("fecha", { ascending: false })
+        .limit(5),
+      withPeriod(
+        supabase.from("facturas").select("cliente_id").eq("user_id", user.id),
+      ),
+    ]);
 
-    const totalFacturado =
-      paidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
+    if (paidResult.error) return createErrorResult(paidResult.error.message);
+    if (unpaidResult.error) return createErrorResult(unpaidResult.error.message);
+    if (gastosResult.error) return createErrorResult(gastosResult.error.message);
+    if (overdueResult.error) return createErrorResult(overdueResult.error.message);
+    if (draftResult.error) return createErrorResult(draftResult.error.message);
+    if (lastInvoicesResult.error) return createErrorResult(lastInvoicesResult.error.message);
+    if (lastExpensesResult.error) return createErrorResult(lastExpensesResult.error.message);
 
-    const unpaidBase = supabase
-      .from("facturas")
-      .select("total")
-      .eq("user_id", user.id)
-      .eq("estado", "enviada");
-    const { data: unpaidInvoices, error: unpaidError } = await (startDate &&
-    endDate
-      ? unpaidBase.gte("fecha", startDate).lte("fecha", endDate)
-      : unpaidBase);
+    const paidInvoices = paidResult.data;
+    const unpaidInvoices = unpaidResult.data;
 
-    if (unpaidError) {
-      return createErrorResult(unpaidError.message);
-    }
-
-    const pendienteCobro =
-      unpaidInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
-
-    const gastosStatBase = supabase
-      .from("gastos")
-      .select("importe")
-      .eq("user_id", user.id);
-    const { data: gastos, error: gastosError } = await (startDate && endDate
-      ? gastosStatBase.gte("fecha", startDate).lte("fecha", endDate)
-      : gastosStatBase);
-
-    if (gastosError) {
-      return createErrorResult(gastosError.message);
-    }
-
-    const totalGastos = gastos?.reduce((sum, g) => sum + g.importe, 0) || 0;
+    const totalFacturado = paidInvoices?.reduce((sum: number, f: { total: number }) => sum + f.total, 0) || 0;
+    const pendienteCobro = unpaidInvoices?.reduce((sum: number, f: { total: number }) => sum + f.total, 0) || 0;
+    const totalGastos = gastosResult.data?.reduce((sum: number, g: { importe: number }) => sum + g.importe, 0) || 0;
     const balance = totalFacturado - totalGastos;
 
-    const { data: overdueInvoices, error: overdueError } = await supabase
-      .from("facturas")
-      .select(`*, cliente:clientes(*)`)
-      .eq("user_id", user.id)
-      .eq("estado", "enviada")
-      .lt("fecha_vencimiento", today)
-      .order("fecha_vencimiento", { ascending: true });
-
-    if (overdueError) {
-      return createErrorResult(overdueError.message);
-    }
-
-    const { count: draftCount, error: draftError } = await supabase
-      .from("facturas")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("estado", "borrador");
-
-    if (draftError) {
-      return createErrorResult(draftError.message);
-    }
-
-    const { data: lastInvoices, error: lastInvoicesError } = await supabase
-      .from("facturas")
-      .select(`*, cliente:clientes(*)`)
-      .eq("user_id", user.id)
-      .order("fecha", { ascending: false })
-      .limit(5);
-
-    if (lastInvoicesError) {
-      return createErrorResult(lastInvoicesError.message);
-    }
-
-    const { data: lastExpenses, error: lastExpensesError } = await supabase
-      .from("gastos")
-      .select(`*, categoria:categorias_gasto(*)`)
-      .eq("user_id", user.id)
-      .order("fecha", { ascending: false })
-      .limit(5);
-
-    if (lastExpensesError) {
-      return createErrorResult(lastExpensesError.message);
-    }
-
-    // Calcular métricas adicionales
     const totalInvoicesCount = paidInvoices?.length || 0;
-    const ticketPromedio =
-      totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
+    const ticketPromedio = totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
 
-    const activeClientsBase = supabase
-      .from("facturas")
-      .select("cliente_id")
-      .eq("user_id", user.id);
-    const { data: activeClients } = await (startDate && endDate
-      ? activeClientsBase.gte("fecha", startDate).lte("fecha", endDate)
-      : activeClientsBase);
-
-    const clientesActivos = activeClients
-      ? new Set(activeClients.map((f) => f.cliente_id)).size
+    const clientesActivos = activeClientsResult.data
+      ? new Set(activeClientsResult.data.map((f: { cliente_id: string }) => f.cliente_id)).size
       : 0;
 
-    const totalInvoices =
-      (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
+    const totalInvoices = (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
     const tasaCobro =
-      totalInvoices > 0
-        ? ((paidInvoices?.length || 0) / totalInvoices) * 100
-        : 0;
+      totalInvoices > 0 ? ((paidInvoices?.length || 0) / totalInvoices) * 100 : 0;
 
     return createSuccessResult({
       totalFacturado,
       pendienteCobro,
       totalGastos,
       balance,
-      facturasVencidas: (overdueInvoices as FacturaConCliente[]) || [],
-      facturasBorrador: draftCount || 0,
-      ultimasFacturas: (lastInvoices as FacturaConCliente[]) || [],
-      ultimosGastos: (lastExpenses as GastoConCategoria[]) || [],
+      facturasVencidas: (overdueResult.data as FacturaConCliente[]) || [],
+      facturasBorrador: draftResult.count || 0,
+      ultimasFacturas: (lastInvoicesResult.data as FacturaConCliente[]) || [],
+      ultimosGastos: (lastExpensesResult.data as GastoConCategoria[]) || [],
       ticketPromedio,
       clientesActivos,
       tasaCobro,
@@ -211,71 +176,55 @@ export async function getMonthlyTotals(
     }
 
     const supabase = await createClient();
-    const results: MonthlyTotal[] = [];
     const now = new Date();
-    const monthNames = [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
-    ];
+    const monthNames = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
-    for (let i = months - 1; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    // Build date ranges for all months up front
+    const monthRanges = Array.from({ length: months }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
       const year = date.getFullYear();
       const month = date.getMonth();
-
       const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-      const monthLastDay = new Date(year, month + 1, 0).getDate();
-      const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(monthLastDay).padStart(2, "0")}`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      return { year, month, startDate, endDate };
+    });
 
-      const { data: invoices } = await supabase
-        .from("facturas")
-        .select("total")
-        .eq("user_id", user.id)
-        .eq("estado", "pagada")
-        .gte("fecha", startDate)
-        .lte("fecha", endDate);
+    // All months queried in parallel — 3 queries × N months fired simultaneously
+    const allMonthResults = await Promise.all(
+      monthRanges.map(({ startDate, endDate }) =>
+        Promise.all([
+          supabase
+            .from("facturas")
+            .select("total")
+            .eq("user_id", user.id)
+            .eq("estado", "pagada")
+            .gte("fecha", startDate)
+            .lte("fecha", endDate),
+          supabase
+            .from("facturas")
+            .select("total")
+            .eq("user_id", user.id)
+            .eq("estado", "enviada")
+            .gte("fecha", startDate)
+            .lte("fecha", endDate),
+          supabase
+            .from("gastos")
+            .select("importe")
+            .eq("user_id", user.id)
+            .gte("fecha", startDate)
+            .lte("fecha", endDate),
+        ]),
+      ),
+    );
 
-      const ingresos = invoices?.reduce((sum, f) => sum + f.total, 0) || 0;
-
-      const { data: pendienteInvoices } = await supabase
-        .from("facturas")
-        .select("total")
-        .eq("user_id", user.id)
-        .eq("estado", "enviada")
-        .gte("fecha", startDate)
-        .lte("fecha", endDate);
-
-      const pendiente =
-        pendienteInvoices?.reduce((sum, f) => sum + f.total, 0) || 0;
-
-      const { data: gastos } = await supabase
-        .from("gastos")
-        .select("importe")
-        .eq("user_id", user.id)
-        .gte("fecha", startDate)
-        .lte("fecha", endDate);
-
-      const totalGastos = gastos?.reduce((sum, g) => sum + g.importe, 0) || 0;
-
-      results.push({
-        month: monthNames[month],
-        monthNum: month + 1,
-        year,
-        ingresos,
-        pendiente,
-        gastos: totalGastos,
-      });
-    }
+    const results: MonthlyTotal[] = monthRanges.map(({ year, month }, i) => {
+      const [pagadasResult, enviadasResult, gastosResult] = allMonthResults[i];
+      const ingresos = pagadasResult.data?.reduce((sum, f) => sum + f.total, 0) || 0;
+      const pendiente = enviadasResult.data?.reduce((sum, f) => sum + f.total, 0) || 0;
+      const gastos = gastosResult.data?.reduce((sum, g) => sum + g.importe, 0) || 0;
+      return { month: monthNames[month], monthNum: month + 1, year, ingresos, pendiente, gastos };
+    });
 
     return createSuccessResult(results);
   } catch {
