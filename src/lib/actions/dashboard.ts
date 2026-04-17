@@ -61,7 +61,9 @@ export async function getDashboardStats(
     // Build period-filtered query builders
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const withPeriod = (q: any) =>
-      startDate && endDate ? q.gte("fecha", startDate).lte("fecha", endDate) : q;
+      startDate && endDate
+        ? q.gte("fecha", startDate).lte("fecha", endDate)
+        : q;
 
     // All 8 queries fired in parallel — ~1 roundtrip instead of 8
     const [
@@ -75,10 +77,18 @@ export async function getDashboardStats(
       activeClientsResult,
     ] = await Promise.all([
       withPeriod(
-        supabase.from("facturas").select("total").eq("user_id", user.id).eq("estado", "pagada"),
+        supabase
+          .from("facturas")
+          .select("total")
+          .eq("user_id", user.id)
+          .eq("estado", "pagada"),
       ),
       withPeriod(
-        supabase.from("facturas").select("total").eq("user_id", user.id).eq("estado", "enviada"),
+        supabase
+          .from("facturas")
+          .select("total")
+          .eq("user_id", user.id)
+          .eq("estado", "enviada"),
       ),
       withPeriod(
         supabase.from("gastos").select("importe").eq("user_id", user.id),
@@ -113,31 +123,56 @@ export async function getDashboardStats(
     ]);
 
     if (paidResult.error) return createErrorResult(paidResult.error.message);
-    if (unpaidResult.error) return createErrorResult(unpaidResult.error.message);
-    if (gastosResult.error) return createErrorResult(gastosResult.error.message);
-    if (overdueResult.error) return createErrorResult(overdueResult.error.message);
+    if (unpaidResult.error)
+      return createErrorResult(unpaidResult.error.message);
+    if (gastosResult.error)
+      return createErrorResult(gastosResult.error.message);
+    if (overdueResult.error)
+      return createErrorResult(overdueResult.error.message);
     if (draftResult.error) return createErrorResult(draftResult.error.message);
-    if (lastInvoicesResult.error) return createErrorResult(lastInvoicesResult.error.message);
-    if (lastExpensesResult.error) return createErrorResult(lastExpensesResult.error.message);
+    if (lastInvoicesResult.error)
+      return createErrorResult(lastInvoicesResult.error.message);
+    if (lastExpensesResult.error)
+      return createErrorResult(lastExpensesResult.error.message);
 
     const paidInvoices = paidResult.data;
     const unpaidInvoices = unpaidResult.data;
 
-    const totalFacturado = paidInvoices?.reduce((sum: number, f: { total: number }) => sum + f.total, 0) || 0;
-    const pendienteCobro = unpaidInvoices?.reduce((sum: number, f: { total: number }) => sum + f.total, 0) || 0;
-    const totalGastos = gastosResult.data?.reduce((sum: number, g: { importe: number }) => sum + g.importe, 0) || 0;
+    const totalFacturado =
+      paidInvoices?.reduce(
+        (sum: number, f: { total: number }) => sum + f.total,
+        0,
+      ) || 0;
+    const pendienteCobro =
+      unpaidInvoices?.reduce(
+        (sum: number, f: { total: number }) => sum + f.total,
+        0,
+      ) || 0;
+    const totalGastos =
+      gastosResult.data?.reduce(
+        (sum: number, g: { importe: number }) => sum + g.importe,
+        0,
+      ) || 0;
     const balance = totalFacturado - totalGastos;
 
     const totalInvoicesCount = paidInvoices?.length || 0;
-    const ticketPromedio = totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
+    const ticketPromedio =
+      totalInvoicesCount > 0 ? totalFacturado / totalInvoicesCount : 0;
 
     const clientesActivos = activeClientsResult.data
-      ? new Set(activeClientsResult.data.map((f: { cliente_id: string }) => f.cliente_id)).size
+      ? new Set(
+          activeClientsResult.data.map(
+            (f: { cliente_id: string }) => f.cliente_id,
+          ),
+        ).size
       : 0;
 
-    const totalInvoices = (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
+    const totalInvoices =
+      (paidInvoices?.length || 0) + (unpaidInvoices?.length || 0);
     const tasaCobro =
-      totalInvoices > 0 ? ((paidInvoices?.length || 0) / totalInvoices) * 100 : 0;
+      totalInvoices > 0
+        ? ((paidInvoices?.length || 0) / totalInvoices) * 100
+        : 0;
 
     return createSuccessResult({
       totalFacturado,
@@ -177,11 +212,28 @@ export async function getMonthlyTotals(
 
     const supabase = await createClient();
     const now = new Date();
-    const monthNames = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    const monthNames = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ];
 
     // Build date ranges for all months up front
     const monthRanges = Array.from({ length: months }, (_, i) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
+      const date = new Date(
+        now.getFullYear(),
+        now.getMonth() - (months - 1 - i),
+        1,
+      );
       const year = date.getFullYear();
       const month = date.getMonth();
       const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
@@ -220,10 +272,20 @@ export async function getMonthlyTotals(
 
     const results: MonthlyTotal[] = monthRanges.map(({ year, month }, i) => {
       const [pagadasResult, enviadasResult, gastosResult] = allMonthResults[i];
-      const ingresos = pagadasResult.data?.reduce((sum, f) => sum + f.total, 0) || 0;
-      const pendiente = enviadasResult.data?.reduce((sum, f) => sum + f.total, 0) || 0;
-      const gastos = gastosResult.data?.reduce((sum, g) => sum + g.importe, 0) || 0;
-      return { month: monthNames[month], monthNum: month + 1, year, ingresos, pendiente, gastos };
+      const ingresos =
+        pagadasResult.data?.reduce((sum, f) => sum + f.total, 0) || 0;
+      const pendiente =
+        enviadasResult.data?.reduce((sum, f) => sum + f.total, 0) || 0;
+      const gastos =
+        gastosResult.data?.reduce((sum, g) => sum + g.importe, 0) || 0;
+      return {
+        month: monthNames[month],
+        monthNum: month + 1,
+        year,
+        ingresos,
+        pendiente,
+        gastos,
+      };
     });
 
     return createSuccessResult(results);

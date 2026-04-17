@@ -130,7 +130,13 @@ export default function RegisterPage() {
                 aria-describedby={errors.nombre ? "nombre-error" : undefined}
               />
               {errors.nombre && (
-                <p id="nombre-error" role="alert" className="text-sm text-red-600">{errors.nombre.message}</p>
+                <p
+                  id="nombre-error"
+                  role="alert"
+                  className="text-sm text-red-600"
+                >
+                  {errors.nombre.message}
+                </p>
               )}
             </div>
 
@@ -145,7 +151,13 @@ export default function RegisterPage() {
                 aria-describedby={errors.email ? "email-error" : undefined}
               />
               {errors.email && (
-                <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p>
+                <p
+                  id="email-error"
+                  role="alert"
+                  className="text-sm text-red-600"
+                >
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -157,10 +169,16 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 {...register("password")}
                 aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? "password-error" : undefined}
+                aria-describedby={
+                  errors.password ? "password-error" : undefined
+                }
               />
               {errors.password && (
-                <p id="password-error" role="alert" className="text-sm text-red-600">
+                <p
+                  id="password-error"
+                  role="alert"
+                  className="text-sm text-red-600"
+                >
                   {errors.password.message}
                 </p>
               )}
@@ -174,10 +192,16 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 {...register("confirmPassword")}
                 aria-invalid={!!errors.confirmPassword}
-                aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                aria-describedby={
+                  errors.confirmPassword ? "confirm-password-error" : undefined
+                }
               />
               {errors.confirmPassword && (
-                <p id="confirm-password-error" role="alert" className="text-sm text-red-600">
+                <p
+                  id="confirm-password-error"
+                  role="alert"
+                  className="text-sm text-red-600"
+                >
                   {errors.confirmPassword.message}
                 </p>
               )}

@@ -40,7 +40,11 @@ import {
   isPresupuestoExpired,
 } from "@/lib/utils";
 import { DATOS_EMPRESA } from "@/lib/constants";
-import type { PresupuestoConCliente, Cliente, EstadoPresupuesto } from "@/types/database";
+import type {
+  PresupuestoConCliente,
+  Cliente,
+  EstadoPresupuesto,
+} from "@/types/database";
 import {
   Plus,
   Filter,
@@ -94,16 +98,23 @@ export function PresupuestosClient({
   initialAvailableMonths,
 }: PresupuestosClientProps) {
   const router = useRouter();
-  const [presupuestos, setPresupuestos] = useState<PresupuestoConCliente[]>(initialPresupuestos);
+  const [presupuestos, setPresupuestos] =
+    useState<PresupuestoConCliente[]>(initialPresupuestos);
   const [clientes] = useState<Cliente[]>(initialClientes);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   // Filters
-  const [availableMonths, setAvailableMonths] = useState<string[]>(initialAvailableMonths);
-  const [filterYear, setFilterYear] = useState(() => getInitialFilterYear(initialAvailableMonths));
-  const [filterPeriodType, setFilterPeriodType] = useState<"month" | "quarter" | "year">("month");
+  const [availableMonths, setAvailableMonths] = useState<string[]>(
+    initialAvailableMonths,
+  );
+  const [filterYear, setFilterYear] = useState(() =>
+    getInitialFilterYear(initialAvailableMonths),
+  );
+  const [filterPeriodType, setFilterPeriodType] = useState<
+    "month" | "quarter" | "year"
+  >("month");
   const [filterMonth, setFilterMonth] = useState("all");
   const [filterQuarter, setFilterQuarter] = useState("1");
   const [filterEstado, setFilterEstado] = useState("");
@@ -128,7 +139,9 @@ export function PresupuestosClient({
         .map((ym) => {
           const month = parseInt(ym.split("-")[1]);
           const date = new Date(parseInt(filterYear), month - 1);
-          const monthName = new Intl.DateTimeFormat("es-ES", { month: "long" }).format(date);
+          const monthName = new Intl.DateTimeFormat("es-ES", {
+            month: "long",
+          }).format(date);
           return {
             value: month.toString(),
             label: monthName.charAt(0).toUpperCase() + monthName.slice(1),
@@ -144,7 +157,10 @@ export function PresupuestosClient({
     }
     const year = parseInt(filterYear);
     if (filterPeriodType === "year") {
-      return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
+      return {
+        filterStartDate: `${year}-01-01`,
+        filterEndDate: `${year}-12-31`,
+      };
     } else if (filterPeriodType === "quarter") {
       const quarter = parseInt(filterQuarter);
       const startMonth = (quarter - 1) * 3 + 1;
@@ -156,7 +172,10 @@ export function PresupuestosClient({
       };
     } else {
       if (filterMonth === "all") {
-        return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
+        return {
+          filterStartDate: `${year}-01-01`,
+          filterEndDate: `${year}-12-31`,
+        };
       } else {
         const month = parseInt(filterMonth);
         const lastDay = new Date(year, month, 0).getDate();
@@ -204,7 +223,9 @@ export function PresupuestosClient({
             filterEstado && filterEstado !== "all"
               ? (filterEstado as EstadoPresupuesto)
               : undefined,
-            filterCliente && filterCliente !== "all" ? filterCliente : undefined,
+            filterCliente && filterCliente !== "all"
+              ? filterCliente
+              : undefined,
           )
         : await getPresupuestos();
 
@@ -228,7 +249,8 @@ export function PresupuestosClient({
 
   const handleNewPresupuesto = () => router.push("/presupuestos/nueva");
 
-  const handleViewPresupuesto = (id: string) => router.push(`/presupuestos/${id}`);
+  const handleViewPresupuesto = (id: string) =>
+    router.push(`/presupuestos/${id}`);
 
   const handleDownloadPDF = async (presupuestoId: string) => {
     setLoadingAction(presupuestoId);
@@ -239,7 +261,9 @@ export function PresupuestosClient({
         return;
       }
       const presupuesto = result.data;
-      const blob = await pdf(<PresupuestoPDF presupuesto={presupuesto} />).toBlob();
+      const blob = await pdf(
+        <PresupuestoPDF presupuesto={presupuesto} />,
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -265,7 +289,9 @@ export function PresupuestosClient({
         return;
       }
       const presupuesto = result.data;
-      const blob = await pdf(<PresupuestoPDF presupuesto={presupuesto} />).toBlob();
+      const blob = await pdf(
+        <PresupuestoPDF presupuesto={presupuesto} />,
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -425,52 +451,57 @@ export function PresupuestosClient({
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {filterPeriodType === "month" && filterYear && filterYear !== "all" && (
-            <div className="space-y-2">
-              <Label htmlFor="filter-month">Mes</Label>
-              <Select value={filterMonth} onValueChange={setFilterMonth}>
-                <SelectTrigger id="filter-month">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {monthsForYear.length > 0
-                    ? monthsForYear.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))
-                    : Array.from({ length: 12 }, (_, i) => {
-                        const date = new Date(parseInt(filterYear), i);
-                        const monthName = new Intl.DateTimeFormat("es-ES", {
-                          month: "long",
-                        }).format(date);
-                        return (
-                          <SelectItem key={i + 1} value={(i + 1).toString()}>
-                            {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+          {filterPeriodType === "month" &&
+            filterYear &&
+            filterYear !== "all" && (
+              <div className="space-y-2">
+                <Label htmlFor="filter-month">Mes</Label>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger id="filter-month">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {monthsForYear.length > 0
+                      ? monthsForYear.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
                           </SelectItem>
-                        );
-                      })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {filterPeriodType === "quarter" && filterYear && filterYear !== "all" && (
-            <div className="space-y-2">
-              <Label htmlFor="filter-quarter">Trimestre</Label>
-              <Select value={filterQuarter} onValueChange={setFilterQuarter}>
-                <SelectTrigger id="filter-quarter">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
-                  <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
-                  <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
-                  <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                        ))
+                      : Array.from({ length: 12 }, (_, i) => {
+                          const date = new Date(parseInt(filterYear), i);
+                          const monthName = new Intl.DateTimeFormat("es-ES", {
+                            month: "long",
+                          }).format(date);
+                          return (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {monthName.charAt(0).toUpperCase() +
+                                monthName.slice(1)}
+                            </SelectItem>
+                          );
+                        })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          {filterPeriodType === "quarter" &&
+            filterYear &&
+            filterYear !== "all" && (
+              <div className="space-y-2">
+                <Label htmlFor="filter-quarter">Trimestre</Label>
+                <Select value={filterQuarter} onValueChange={setFilterQuarter}>
+                  <SelectTrigger id="filter-quarter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
+                    <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
+                    <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
+                    <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           <div className="space-y-2">
             <Label htmlFor="filter-period">Periodo</Label>
             <Select
@@ -562,18 +593,34 @@ export function PresupuestosClient({
             <table className="w-full">
               <thead className="bg-neutral-50 border-b border-neutral-200">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Número</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Cliente</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Fecha</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Validez</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">Total</th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-neutral-600">Estado</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">Acciones</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Número
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Cliente
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Fecha
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Validez
+                  </th>
+                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">
+                    Total
+                  </th>
+                  <th className="text-center px-4 py-3 text-sm font-medium text-neutral-600">
+                    Estado
+                  </th>
+                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
                 {presupuestos.map((presupuesto) => {
-                  const isExpired = isPresupuestoExpired(presupuesto.fecha_validez);
+                  const isExpired = isPresupuestoExpired(
+                    presupuesto.fecha_validez,
+                  );
                   return (
                     <tr
                       key={presupuesto.id}
@@ -594,7 +641,10 @@ export function PresupuestosClient({
                           {formatDate(presupuesto.fecha_validez)}
                           {isExpired && presupuesto.estado === "pendiente" && (
                             <span title="Expirado">
-                              <AlertTriangle className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                              <AlertTriangle
+                                className="h-4 w-4 text-amber-500"
+                                aria-hidden="true"
+                              />
                             </span>
                           )}
                         </div>
@@ -606,13 +656,28 @@ export function PresupuestosClient({
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${estadoPresupuestoBadgeStyles[presupuesto.estado]}`}
                           style={{
-                            backgroundColor: estadoPresupuestoBadgeColors[presupuesto.estado],
+                            backgroundColor:
+                              estadoPresupuestoBadgeColors[presupuesto.estado],
                           }}
                         >
-                          {presupuesto.estado === "pendiente" && <Clock className="h-3.5 w-3.5" aria-hidden="true" />}
-                          {presupuesto.estado === "aceptado" && <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />}
-                          {presupuesto.estado === "rechazado" && <Ban className="h-3.5 w-3.5" aria-hidden="true" />}
-                          {presupuesto.estado === "expirado" && <CalendarX className="h-3.5 w-3.5" aria-hidden="true" />}
+                          {presupuesto.estado === "pendiente" && (
+                            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                          {presupuesto.estado === "aceptado" && (
+                            <CircleCheck
+                              className="h-3.5 w-3.5"
+                              aria-hidden="true"
+                            />
+                          )}
+                          {presupuesto.estado === "rechazado" && (
+                            <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                          {presupuesto.estado === "expirado" && (
+                            <CalendarX
+                              className="h-3.5 w-3.5"
+                              aria-hidden="true"
+                            />
+                          )}
                           {estadoPresupuestoLabels[presupuesto.estado]}
                         </span>
                       </td>
@@ -628,62 +693,110 @@ export function PresupuestosClient({
                               aria-label="Abrir menú de acciones"
                             >
                               {loadingAction === presupuesto.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                                <Loader2
+                                  className="h-4 w-4 animate-spin"
+                                  aria-hidden="true"
+                                />
                               ) : (
-                                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                                <MoreHorizontal
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
                               )}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewPresupuesto(presupuesto.id)}>
-                              <Eye className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleViewPresupuesto(presupuesto.id)
+                              }
+                            >
+                              <Eye
+                                className="h-4 w-4 mr-2"
+                                aria-hidden="true"
+                              />
                               Ver / Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDownloadPDF(presupuesto.id)}>
-                              <Download className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadPDF(presupuesto.id)}
+                            >
+                              <Download
+                                className="h-4 w-4 mr-2"
+                                aria-hidden="true"
+                              />
                               Descargar PDF
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSendEmail(presupuesto.id)}>
-                              <Mail className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <DropdownMenuItem
+                              onClick={() => handleSendEmail(presupuesto.id)}
+                            >
+                              <Mail
+                                className="h-4 w-4 mr-2"
+                                aria-hidden="true"
+                              />
                               Enviar por Gmail
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {(presupuesto.estado === "pendiente" ||
                               presupuesto.estado === "expirado") && (
                               <DropdownMenuItem
-                                onClick={() => handleConvertToFactura(presupuesto.id)}
+                                onClick={() =>
+                                  handleConvertToFactura(presupuesto.id)
+                                }
                               >
-                                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />
+                                <FileText
+                                  className="h-4 w-4 mr-2"
+                                  aria-hidden="true"
+                                />
                                 Convertir a Factura
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => handleDuplicate(presupuesto.id)}>
-                              <Copy className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <DropdownMenuItem
+                              onClick={() => handleDuplicate(presupuesto.id)}
+                            >
+                              <Copy
+                                className="h-4 w-4 mr-2"
+                                aria-hidden="true"
+                              />
                               Duplicar
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {presupuesto.estado === "pendiente" && (
                               <>
                                 <DropdownMenuItem
-                                  onClick={() => handleMarkAsRechazado(presupuesto.id)}
+                                  onClick={() =>
+                                    handleMarkAsRechazado(presupuesto.id)
+                                  }
                                 >
-                                  <XCircle className="h-4 w-4 mr-2" aria-hidden="true" />
+                                  <XCircle
+                                    className="h-4 w-4 mr-2"
+                                    aria-hidden="true"
+                                  />
                                   Marcar como rechazado
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleMarkAsExpirado(presupuesto.id)}
+                                  onClick={() =>
+                                    handleMarkAsExpirado(presupuesto.id)
+                                  }
                                 >
-                                  <XCircle className="h-4 w-4 mr-2" aria-hidden="true" />
+                                  <XCircle
+                                    className="h-4 w-4 mr-2"
+                                    aria-hidden="true"
+                                  />
                                   Marcar como expirado
                                 </DropdownMenuItem>
                               </>
                             )}
                             {presupuesto.estado !== "aceptado" && (
                               <DropdownMenuItem
-                                onClick={() => handleDeletePresupuesto(presupuesto.id)}
+                                onClick={() =>
+                                  handleDeletePresupuesto(presupuesto.id)
+                                }
                                 className="text-red-600 focus:text-red-600"
                               >
-                                <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                                <Trash2
+                                  className="h-4 w-4 mr-2"
+                                  aria-hidden="true"
+                                />
                                 Eliminar
                               </DropdownMenuItem>
                             )}

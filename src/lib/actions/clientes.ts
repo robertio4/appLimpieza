@@ -181,7 +181,11 @@ export async function deleteCliente(id: string): Promise<ActionResult<void>> {
 // ========================================
 
 interface RecurringInvoiceResult {
-  generated: Array<{ cliente_nombre: string; factura_numero: string; factura_id: string }>;
+  generated: Array<{
+    cliente_nombre: string;
+    factura_numero: string;
+    factura_id: string;
+  }>;
   skipped: Array<{ cliente_nombre: string; reason: string }>;
   errors: Array<{ cliente_nombre: string; error: string }>;
 }
@@ -205,7 +209,7 @@ interface FacturaCompletaConLineas {
 function calculateDueDate(
   lastInvoiceDate: string,
   lastInvoiceDueDate: string | null,
-  newInvoiceDate: string
+  newInvoiceDate: string,
 ): string | undefined {
   if (!lastInvoiceDueDate) {
     return undefined;
@@ -215,7 +219,7 @@ function calculateDueDate(
   const lastDate = new Date(lastInvoiceDate);
   const lastDueDate = new Date(lastInvoiceDueDate);
   const daysDiff = Math.round(
-    (lastDueDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+    (lastDueDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   // Aplicar el mismo plazo a la nueva factura
@@ -233,7 +237,7 @@ async function hasInvoiceInMonth(
   userId: string,
   month: number,
   year: number,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<boolean> {
   // Fechas de inicio y fin del mes
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -264,7 +268,7 @@ async function hasInvoiceInMonth(
 async function getLastClientInvoice(
   clienteId: string,
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<FacturaCompletaConLineas | null> {
   const { data, error } = await supabase
     .from("facturas")
@@ -280,7 +284,7 @@ async function getLastClientInvoice(
         cantidad,
         precio_unitario
       )
-    `
+    `,
     )
     .eq("cliente_id", clienteId)
     .eq("user_id", userId)
@@ -306,7 +310,7 @@ async function getLastClientInvoice(
  */
 export async function generateRecurringInvoices(
   targetMonth?: number,
-  targetYear?: number
+  targetYear?: number,
 ): Promise<ActionResult<RecurringInvoiceResult>> {
   try {
     const { user, error: authError } = await getAuthenticatedUser();
@@ -319,7 +323,9 @@ export async function generateRecurringInvoices(
       typeof targetMonth !== "undefined" &&
       (!Number.isInteger(targetMonth) || targetMonth < 1 || targetMonth > 12)
     ) {
-      return createErrorResult("Mes objetivo inválido. Debe estar entre 1 y 12.");
+      return createErrorResult(
+        "Mes objetivo inválido. Debe estar entre 1 y 12.",
+      );
     }
 
     if (
@@ -327,7 +333,7 @@ export async function generateRecurringInvoices(
       (!Number.isInteger(targetYear) || targetYear < 1900 || targetYear > 3000)
     ) {
       return createErrorResult(
-        "Año objetivo inválido. Debe ser un número entero entre 1900 y 3000."
+        "Año objetivo inválido. Debe ser un número entero entre 1900 y 3000.",
       );
     }
 
@@ -379,7 +385,7 @@ export async function generateRecurringInvoices(
           user.id,
           month,
           year,
-          supabase
+          supabase,
         );
 
         if (hasInvoice) {
@@ -391,7 +397,11 @@ export async function generateRecurringInvoices(
         }
 
         // Obtener última factura del cliente
-        const lastInvoice = await getLastClientInvoice(cliente.id, user.id, supabase);
+        const lastInvoice = await getLastClientInvoice(
+          cliente.id,
+          user.id,
+          supabase,
+        );
 
         if (!lastInvoice) {
           result.skipped.push({
@@ -401,7 +411,10 @@ export async function generateRecurringInvoices(
           continue;
         }
 
-        if (!lastInvoice.lineas_factura || lastInvoice.lineas_factura.length === 0) {
+        if (
+          !lastInvoice.lineas_factura ||
+          lastInvoice.lineas_factura.length === 0
+        ) {
           result.skipped.push({
             cliente_nombre: cliente.nombre,
             reason: "La última factura no tiene líneas",
@@ -422,7 +435,7 @@ export async function generateRecurringInvoices(
         const fechaVencimiento = calculateDueDate(
           lastInvoice.fecha,
           lastInvoice.fecha_vencimiento,
-          newInvoiceDate
+          newInvoiceDate,
         );
 
         // Preparar notas (copiar y agregar referencia)
@@ -470,7 +483,9 @@ export async function generateRecurringInvoices(
     return createSuccessResult(result);
   } catch (error) {
     return createErrorResult(
-      error instanceof Error ? error.message : "Error al generar facturas recurrentes"
+      error instanceof Error
+        ? error.message
+        : "Error al generar facturas recurrentes",
     );
   }
 }

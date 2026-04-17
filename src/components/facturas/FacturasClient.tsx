@@ -105,7 +105,8 @@ export function FacturasClient({
   initialAvailableMonths,
 }: FacturasClientProps) {
   const router = useRouter();
-  const [facturas, setFacturas] = useState<FacturaConCliente[]>(initialFacturas);
+  const [facturas, setFacturas] =
+    useState<FacturaConCliente[]>(initialFacturas);
   const [allFacturas] = useState<FacturaConCliente[]>(initialFacturas);
   const [clientes] = useState<Cliente[]>(initialClientes);
   const [isLoading, setIsLoading] = useState(false);
@@ -127,17 +128,31 @@ export function FacturasClient({
 
   // Period download
   const [showPeriodDialog, setShowPeriodDialog] = useState(false);
-  const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">("month");
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
+  const [periodType, setPeriodType] = useState<"month" | "quarter" | "year">(
+    "month",
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString(),
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    (new Date().getMonth() + 1).toString(),
+  );
   const [selectedQuarter, setSelectedQuarter] = useState("1");
-  const [downloadSelectedClientes, setDownloadSelectedClientes] = useState<string[]>([]);
+  const [downloadSelectedClientes, setDownloadSelectedClientes] = useState<
+    string[]
+  >([]);
   const [isDownloadingPeriod, setIsDownloadingPeriod] = useState(false);
 
   // Filters
-  const [availableMonths, setAvailableMonths] = useState<string[]>(initialAvailableMonths);
-  const [filterYear, setFilterYear] = useState(() => getInitialFilterYear(initialAvailableMonths));
-  const [filterPeriodType, setFilterPeriodType] = useState<"month" | "quarter" | "year">("month");
+  const [availableMonths, setAvailableMonths] = useState<string[]>(
+    initialAvailableMonths,
+  );
+  const [filterYear, setFilterYear] = useState(() =>
+    getInitialFilterYear(initialAvailableMonths),
+  );
+  const [filterPeriodType, setFilterPeriodType] = useState<
+    "month" | "quarter" | "year"
+  >("month");
   const [filterMonth, setFilterMonth] = useState("all");
   const [filterQuarter, setFilterQuarter] = useState("1");
   const [filterEstado, setFilterEstado] = useState("");
@@ -180,7 +195,10 @@ export function FacturasClient({
     }
     const year = parseInt(filterYear);
     if (filterPeriodType === "year") {
-      return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
+      return {
+        filterStartDate: `${year}-01-01`,
+        filterEndDate: `${year}-12-31`,
+      };
     } else if (filterPeriodType === "quarter") {
       const quarter = parseInt(filterQuarter);
       const startMonth = (quarter - 1) * 3 + 1;
@@ -192,7 +210,10 @@ export function FacturasClient({
       };
     } else {
       if (filterMonth === "all") {
-        return { filterStartDate: `${year}-01-01`, filterEndDate: `${year}-12-31` };
+        return {
+          filterStartDate: `${year}-01-01`,
+          filterEndDate: `${year}-12-31`,
+        };
       } else {
         const month = parseInt(filterMonth);
         const lastDay = new Date(year, month, 0).getDate();
@@ -371,7 +392,9 @@ export function FacturasClient({
       URL.revokeObjectURL(url);
 
       const clienteEmail = factura.cliente.email || "";
-      const subject = encodeURIComponent(`Factura ${factura.numero} - ${DATOS_EMPRESA.nombre}`);
+      const subject = encodeURIComponent(
+        `Factura ${factura.numero} - ${DATOS_EMPRESA.nombre}`,
+      );
       const body = encodeURIComponent(
         `Estimado/a ${factura.cliente.nombre},\n\n` +
           `Adjunto le enviamos la factura ${factura.numero} correspondiente a nuestros servicios.\n\n` +
@@ -484,7 +507,9 @@ export function FacturasClient({
         endDate,
         undefined,
         undefined,
-        downloadSelectedClientes.length > 0 ? downloadSelectedClientes : undefined,
+        downloadSelectedClientes.length > 0
+          ? downloadSelectedClientes
+          : undefined,
       );
       if (!result.success || result.data.length === 0) {
         toast.error("No hay facturas en el período seleccionado");
@@ -592,7 +617,10 @@ export function FacturasClient({
           >
             {isGenerating ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                <Loader2
+                  className="h-4 w-4 mr-2 animate-spin"
+                  aria-hidden="true"
+                />
                 Generando...
               </>
             ) : (
@@ -620,52 +648,57 @@ export function FacturasClient({
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {filterPeriodType === "month" && filterYear && filterYear !== "all" && (
-            <div className="space-y-2">
-              <Label htmlFor="filter-month">Mes</Label>
-              <Select value={filterMonth} onValueChange={setFilterMonth}>
-                <SelectTrigger id="filter-month">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {monthsForYear.length > 0
-                    ? monthsForYear.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))
-                    : Array.from({ length: 12 }, (_, i) => {
-                        const date = new Date(parseInt(filterYear), i);
-                        const monthName = new Intl.DateTimeFormat("es-ES", {
-                          month: "long",
-                        }).format(date);
-                        return (
-                          <SelectItem key={i + 1} value={(i + 1).toString()}>
-                            {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+          {filterPeriodType === "month" &&
+            filterYear &&
+            filterYear !== "all" && (
+              <div className="space-y-2">
+                <Label htmlFor="filter-month">Mes</Label>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger id="filter-month">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {monthsForYear.length > 0
+                      ? monthsForYear.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
                           </SelectItem>
-                        );
-                      })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {filterPeriodType === "quarter" && filterYear && filterYear !== "all" && (
-            <div className="space-y-2">
-              <Label htmlFor="filter-quarter">Trimestre</Label>
-              <Select value={filterQuarter} onValueChange={setFilterQuarter}>
-                <SelectTrigger id="filter-quarter">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
-                  <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
-                  <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
-                  <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                        ))
+                      : Array.from({ length: 12 }, (_, i) => {
+                          const date = new Date(parseInt(filterYear), i);
+                          const monthName = new Intl.DateTimeFormat("es-ES", {
+                            month: "long",
+                          }).format(date);
+                          return (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {monthName.charAt(0).toUpperCase() +
+                                monthName.slice(1)}
+                            </SelectItem>
+                          );
+                        })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          {filterPeriodType === "quarter" &&
+            filterYear &&
+            filterYear !== "all" && (
+              <div className="space-y-2">
+                <Label htmlFor="filter-quarter">Trimestre</Label>
+                <Select value={filterQuarter} onValueChange={setFilterQuarter}>
+                  <SelectTrigger id="filter-quarter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Q1 (Ene-Mar)</SelectItem>
+                    <SelectItem value="2">Q2 (Abr-Jun)</SelectItem>
+                    <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
+                    <SelectItem value="4">Q4 (Oct-Dic)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           <div className="space-y-2">
             <Label htmlFor="filter-period">Periodo</Label>
             <Select
@@ -756,12 +789,24 @@ export function FacturasClient({
             <table className="w-full">
               <thead className="bg-neutral-50 border-b border-neutral-200">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Número</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Cliente</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">Fecha</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">Total</th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-neutral-600">Estado</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">Acciones</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Número
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Cliente
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-neutral-600">
+                    Fecha
+                  </th>
+                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">
+                    Total
+                  </th>
+                  <th className="text-center px-4 py-3 text-sm font-medium text-neutral-600">
+                    Estado
+                  </th>
+                  <th className="text-right px-4 py-3 text-sm font-medium text-neutral-600">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
@@ -786,11 +831,25 @@ export function FacturasClient({
                     <td className="px-4 py-3 text-sm text-center">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${estadoBadgeStyles[factura.estado]}`}
-                        style={{ backgroundColor: estadoBadgeColors[factura.estado] }}
+                        style={{
+                          backgroundColor: estadoBadgeColors[factura.estado],
+                        }}
                       >
-                        {factura.estado === "borrador" && <FileEdit className="h-3.5 w-3.5" aria-hidden="true" />}
-                        {factura.estado === "enviada" && <Send className="h-3.5 w-3.5" aria-hidden="true" />}
-                        {factura.estado === "pagada" && <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />}
+                        {factura.estado === "borrador" && (
+                          <FileEdit
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {factura.estado === "enviada" && (
+                          <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                        )}
+                        {factura.estado === "pagada" && (
+                          <CircleCheck
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        )}
                         {estadoLabels[factura.estado]}
                       </span>
                     </td>
@@ -806,29 +865,49 @@ export function FacturasClient({
                             aria-label="Abrir menú de acciones"
                           >
                             {loadingAction === factura.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                              <Loader2
+                                className="h-4 w-4 animate-spin"
+                                aria-hidden="true"
+                              />
                             ) : (
-                              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                              <MoreHorizontal
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
                             )}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewFactura(factura.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleViewFactura(factura.id)}
+                          >
                             <Eye className="h-4 w-4 mr-2" aria-hidden="true" />
                             Ver / Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDownloadPDF(factura.id)}>
-                            <Download className="h-4 w-4 mr-2" aria-hidden="true" />
+                          <DropdownMenuItem
+                            onClick={() => handleDownloadPDF(factura.id)}
+                          >
+                            <Download
+                              className="h-4 w-4 mr-2"
+                              aria-hidden="true"
+                            />
                             Descargar PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleSendEmail(factura.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleSendEmail(factura.id)}
+                          >
                             <Mail className="h-4 w-4 mr-2" aria-hidden="true" />
                             Enviar por Gmail
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {factura.estado !== "pagada" && (
-                            <DropdownMenuItem onClick={() => handleMarkAsPaid(factura.id)}>
-                              <CheckCircle className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <DropdownMenuItem
+                              onClick={() => handleMarkAsPaid(factura.id)}
+                            >
+                              <CheckCircle
+                                className="h-4 w-4 mr-2"
+                                aria-hidden="true"
+                              />
                               Marcar como pagada
                             </DropdownMenuItem>
                           )}
@@ -836,7 +915,10 @@ export function FacturasClient({
                             onClick={() => handleDeleteFactura(factura.id)}
                             className="text-red-600 focus:text-red-600"
                           >
-                            <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <Trash2
+                              className="h-4 w-4 mr-2"
+                              aria-hidden="true"
+                            />
                             Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -954,8 +1036,13 @@ export function FacturasClient({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="month">Mes</Label>
-                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger id="month"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={selectedMonth}
+                    onValueChange={setSelectedMonth}
+                  >
+                    <SelectTrigger id="month">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {downloadAvailableMonths.map((month) => (
                         <SelectItem key={month} value={month.toString()}>
@@ -968,10 +1055,14 @@ export function FacturasClient({
                 <div className="space-y-2">
                   <Label htmlFor="year-month">Año</Label>
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger id="year-month"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="year-month">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {downloadAvailableYears.map((year) => (
-                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -983,8 +1074,13 @@ export function FacturasClient({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quarter">Trimestre</Label>
-                  <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
-                    <SelectTrigger id="quarter"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={selectedQuarter}
+                    onValueChange={setSelectedQuarter}
+                  >
+                    <SelectTrigger id="quarter">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {downloadAvailableQuarters.map((quarter) => (
                         <SelectItem key={quarter} value={quarter.toString()}>
@@ -997,10 +1093,14 @@ export function FacturasClient({
                 <div className="space-y-2">
                   <Label htmlFor="year-quarter">Año</Label>
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger id="year-quarter"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="year-quarter">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {downloadAvailableYears.map((year) => (
-                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1012,10 +1112,14 @@ export function FacturasClient({
               <div className="space-y-2">
                 <Label htmlFor="year">Año</Label>
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger id="year"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="year">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {downloadAvailableYears.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1046,17 +1150,24 @@ export function FacturasClient({
               </div>
               <div className="border rounded-md max-h-40 overflow-y-auto p-2 space-y-2">
                 {clientes.length === 0 ? (
-                  <p className="text-sm text-neutral-500 text-center py-2">No hay clientes</p>
+                  <p className="text-sm text-neutral-500 text-center py-2">
+                    No hay clientes
+                  </p>
                 ) : (
                   clientes.map((cliente) => (
-                    <div key={cliente.id} className="flex items-center space-x-2">
+                    <div
+                      key={cliente.id}
+                      className="flex items-center space-x-2"
+                    >
                       <Checkbox
                         id={`download-cliente-${cliente.id}`}
                         checked={downloadSelectedClientes.includes(cliente.id)}
                         onCheckedChange={(checked) => {
                           if (checked === true) {
                             setDownloadSelectedClientes((prev) =>
-                              prev.includes(cliente.id) ? prev : [...prev, cliente.id],
+                              prev.includes(cliente.id)
+                                ? prev
+                                : [...prev, cliente.id],
                             );
                           } else if (checked === false) {
                             setDownloadSelectedClientes((prev) =>
@@ -1095,11 +1206,16 @@ export function FacturasClient({
             </Button>
             <Button
               onClick={handleDownloadPeriod}
-              disabled={isDownloadingPeriod || downloadSelectedClientes.length === 0}
+              disabled={
+                isDownloadingPeriod || downloadSelectedClientes.length === 0
+              }
             >
               {isDownloadingPeriod ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-4 w-4 mr-2 animate-spin"
+                    aria-hidden="true"
+                  />
                   Descargando...
                 </>
               ) : (

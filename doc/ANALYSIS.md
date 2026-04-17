@@ -21,13 +21,15 @@ El proyecto está **bien estructurado para su tamaño y propósito**. La refacto
 ### 🔴 P0 — Críticos (seguridad / rendimiento máximo)
 
 #### 1. DATOS_EMPRESA → Variables de entorno
+
 **Archivos:** `src/lib/constants.ts`, `.env.local` (nuevo)
 
-| Antes | Después |
-|-------|---------|
+| Antes                                                    | Después                                       |
+| -------------------------------------------------------- | --------------------------------------------- |
 | NIF, IBAN, email, teléfono hardcodeados en código fuente | Leídos desde `NEXT_PUBLIC_COMPANY_*` env vars |
 
 **Acción requerida:** Añadir las variables a `.env.local` y en Vercel/producción:
+
 ```env
 NEXT_PUBLIC_COMPANY_NOMBRE=Limpiezas Roferlim
 NEXT_PUBLIC_COMPANY_NIF=33861402C
@@ -40,6 +42,7 @@ NEXT_PUBLIC_COMPANY_DIRECCION=Rua da Fraga, 2 - 1º Dcha, 27003 Lugo
 > ⚠️ Si el repositorio ha sido público, considera el NIF e IBAN como expuestos en git history. Usa `git filter-branch` o BFG Repo Cleaner para limpiar el historial si es necesario.
 
 #### 2. getDashboardStats: 8 queries → Promise.all paralelo
+
 **Archivo:** `src/lib/actions/dashboard.ts`
 
 ```ts
@@ -53,6 +56,7 @@ const [paidResult, unpaidResult, gastosResult, ...] = await Promise.all([...]);
 ```
 
 #### 3. getMonthlyTotals: 18 queries → Promise.all paralelo
+
 **Archivo:** `src/lib/actions/dashboard.ts`
 
 ```ts
@@ -78,13 +82,16 @@ const allResults = await Promise.all(
 ### 🟠 P1 — Alto impacto (arquitectura)
 
 #### 4. RSC split para páginas de listado
-**Archivos:** 
+
+**Archivos:**
+
 - `src/app/(dashboard)/facturas/page.tsx` → Server Component wrapper
 - `src/components/facturas/FacturasClient.tsx` → Client Component (toda la lógica interactiva)
 - `src/app/(dashboard)/presupuestos/page.tsx` → Server Component wrapper
 - `src/components/presupuestos/PresupuestosClient.tsx` → Client Component
 
 **Patrón implementado:**
+
 ```tsx
 // page.tsx (Server Component) — carga datos en servidor
 export default async function FacturasPage() {
@@ -102,6 +109,7 @@ export function FacturasClient({ initialFacturas, initialClientes, initialAvaila
 ```
 
 **Beneficios:**
+
 - Carga inicial renderizada en servidor (sin spinner de carga)
 - Datos disponibles inmediatamente en el HTML
 - Las actualizaciones de filtro siguen siendo client-side via Server Actions
@@ -111,6 +119,7 @@ export function FacturasClient({ initialFacturas, initialClientes, initialAvaila
 ### 🟠 P2 — Mejoras importantes
 
 #### 5. Dynamic import de JSZip
+
 **Archivo:** `src/components/facturas/FacturasClient.tsx`
 
 ```ts
@@ -121,10 +130,12 @@ import JSZip from "jszip";
 const JSZip = (await import("jszip")).default;
 ```
 
-#### 6. getAvailableMonths* — SQL con DISTINCT
+#### 6. getAvailableMonths\* — SQL con DISTINCT
+
 **Archivo:** `supabase/migrations/004_performance_improvements.sql`
 
 Función SQL que usa `DISTINCT` en lugar de traer todas las filas a JS:
+
 ```sql
 CREATE OR REPLACE FUNCTION get_available_months_facturas(p_user_id UUID)
 RETURNS TABLE(year_month TEXT) AS $$
@@ -137,6 +148,7 @@ $$ LANGUAGE sql SECURITY DEFINER;
 > Hasta aplicar la migración, el código funciona igual que antes (las funciones TS hacen el filtro en JS).
 
 #### 7. Metadata por página
+
 **Archivos:** Todas las páginas del dashboard
 
 ```tsx
@@ -150,6 +162,7 @@ export const metadata: Metadata = {
 ### 🟡 P3 — Calidad y experiencia
 
 #### 8. React.cache() en lecturas compartidas
+
 **Archivo:** `src/lib/actions/clientes.ts`
 
 ```ts
@@ -160,6 +173,7 @@ export const getClientes = cache(async (): Promise<ActionResult<Cliente[]>> => {
 Deduplica llamadas a `getClientes` dentro del mismo árbol de renderizado RSC.
 
 #### 9. Toast manual → Sonner
+
 **Archivos:** `src/app/layout.tsx`, todas las páginas con `[toast, setToast]`
 
 ```tsx
@@ -174,28 +188,37 @@ toast.error("Error al guardar");
 ```
 
 #### 10. Accesibilidad: aria-describedby en formularios
+
 **Archivos:** `src/app/(auth)/login/page.tsx`, `src/app/(auth)/register/page.tsx`
 
 ```tsx
 // ANTES: error message sin asociación ARIA
-<Input aria-invalid={!!errors.email} {...register("email")} />
-{errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+<Input aria-invalid={!!errors.email} {...register("email")} />;
+{
+  errors.email && (
+    <p className="text-sm text-red-600">{errors.email.message}</p>
+  );
+}
 
 // DESPUÉS: asociado con aria-describedby + role="alert"
 <Input
   aria-invalid={!!errors.email}
   aria-describedby={errors.email ? "email-error" : undefined}
   {...register("email")}
-/>
-{errors.email && (
-  <p id="email-error" role="alert" className="text-sm text-red-600">
-    {errors.email.message}
-  </p>
-)}
+/>;
+{
+  errors.email && (
+    <p id="email-error" role="alert" className="text-sm text-red-600">
+      {errors.email.message}
+    </p>
+  );
+}
 ```
 
 #### 11. loading.tsx esqueletos
+
 **Archivos nuevos:**
+
 - `src/app/(dashboard)/facturas/loading.tsx`
 - `src/app/(dashboard)/presupuestos/loading.tsx`
 - `src/app/(dashboard)/clientes/loading.tsx`
@@ -206,6 +229,7 @@ toast.error("Error al guardar");
 ### 🟢 P4 — Calidad de código
 
 #### 12. CustomTooltip fuera del componente padre
+
 **Archivo:** `src/components/dashboard/monthly-chart.tsx`
 
 ```tsx
@@ -220,6 +244,7 @@ export function MonthlyChart({ data }) { ... }
 ```
 
 #### 13. crypto.randomUUID() en lugar de Math.random()
+
 **Archivo:** `src/app/(dashboard)/facturas/[id]/page.tsx`
 
 ```ts
@@ -235,6 +260,7 @@ function generateId(): string {
 ```
 
 #### 14. RLS para lineas_factura y lineas_presupuesto
+
 **Archivo:** `supabase/migrations/004_performance_improvements.sql`
 
 ```sql
@@ -269,21 +295,21 @@ CREATE POLICY "Users can manage their own invoice lines"
 
 ## Archivos modificados/creados
 
-| Archivo | Tipo | Cambio |
-|---------|------|--------|
-| `doc/ANALYSIS.md` | Nuevo | Este documento |
-| `src/lib/constants.ts` | Modificado | DATOS_EMPRESA desde env vars |
-| `src/lib/actions/dashboard.ts` | Modificado | Promise.all en getDashboardStats + getMonthlyTotals |
-| `src/lib/actions/clientes.ts` | Modificado | React.cache() en getClientes |
-| `src/app/(dashboard)/facturas/page.tsx` | Modificado | Server Component wrapper |
-| `src/components/facturas/FacturasClient.tsx` | Nuevo | Client Component extraído |
-| `src/app/(dashboard)/presupuestos/page.tsx` | Modificado | Server Component wrapper |
-| `src/components/presupuestos/PresupuestosClient.tsx` | Nuevo | Client Component extraído |
-| `src/app/(dashboard)/facturas/[id]/page.tsx` | Modificado | crypto.randomUUID() |
-| `src/components/dashboard/monthly-chart.tsx` | Modificado | CustomTooltip extraído + memo |
-| `src/app/layout.tsx` | Modificado | Toaster de sonner |
-| `src/app/(dashboard)/*/page.tsx` | Modificado | Metadata por página |
-| `src/app/(auth)/login/page.tsx` | Modificado | aria-describedby |
-| `src/app/(auth)/register/page.tsx` | Modificado | aria-describedby |
-| `src/app/(dashboard)/*/loading.tsx` | Nuevo (×4) | Esqueletos de carga |
-| `supabase/migrations/004_performance_improvements.sql` | Nuevo | RLS lineas + DISTINCT months |
+| Archivo                                                | Tipo       | Cambio                                              |
+| ------------------------------------------------------ | ---------- | --------------------------------------------------- |
+| `doc/ANALYSIS.md`                                      | Nuevo      | Este documento                                      |
+| `src/lib/constants.ts`                                 | Modificado | DATOS_EMPRESA desde env vars                        |
+| `src/lib/actions/dashboard.ts`                         | Modificado | Promise.all en getDashboardStats + getMonthlyTotals |
+| `src/lib/actions/clientes.ts`                          | Modificado | React.cache() en getClientes                        |
+| `src/app/(dashboard)/facturas/page.tsx`                | Modificado | Server Component wrapper                            |
+| `src/components/facturas/FacturasClient.tsx`           | Nuevo      | Client Component extraído                           |
+| `src/app/(dashboard)/presupuestos/page.tsx`            | Modificado | Server Component wrapper                            |
+| `src/components/presupuestos/PresupuestosClient.tsx`   | Nuevo      | Client Component extraído                           |
+| `src/app/(dashboard)/facturas/[id]/page.tsx`           | Modificado | crypto.randomUUID()                                 |
+| `src/components/dashboard/monthly-chart.tsx`           | Modificado | CustomTooltip extraído + memo                       |
+| `src/app/layout.tsx`                                   | Modificado | Toaster de sonner                                   |
+| `src/app/(dashboard)/*/page.tsx`                       | Modificado | Metadata por página                                 |
+| `src/app/(auth)/login/page.tsx`                        | Modificado | aria-describedby                                    |
+| `src/app/(auth)/register/page.tsx`                     | Modificado | aria-describedby                                    |
+| `src/app/(dashboard)/*/loading.tsx`                    | Nuevo (×4) | Esqueletos de carga                                 |
+| `supabase/migrations/004_performance_improvements.sql` | Nuevo      | RLS lineas + DISTINCT months                        |

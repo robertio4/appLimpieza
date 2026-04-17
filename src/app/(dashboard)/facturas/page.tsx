@@ -1,7 +1,11 @@
 // Server Component – data is fetched here and passed to the interactive client layer
 export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
-import { getFacturas, getClientes, getAvailableMonthsFacturas } from "@/lib/actions/facturas";
+import {
+  getFacturas,
+  getClientes,
+  getAvailableMonthsFacturas,
+} from "@/lib/actions/facturas";
 import { FacturasClient } from "@/components/facturas/FacturasClient";
 
 export const metadata: Metadata = {

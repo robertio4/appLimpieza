@@ -33,7 +33,10 @@ export default function PresupuestosLoading() {
           </div>
         </div>
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="p-4 border-b border-neutral-100 last:border-0">
+          <div
+            key={i}
+            className="p-4 border-b border-neutral-100 last:border-0"
+          >
             <div className="grid grid-cols-7 gap-4">
               {Array.from({ length: 7 }).map((_, j) => (
                 <Skeleton key={j} className="h-5 w-full" />
