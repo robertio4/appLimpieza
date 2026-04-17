@@ -9,12 +9,14 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <GuestBanner />
-      <div className="flex min-h-screen bg-neutral-50">
-        <Sidebar />
-        <main className="flex-1 lg:pl-0 pt-16 lg:pt-0">
-          <div className="p-6">{children}</div>
-        </main>
+      <div className="flex flex-col h-screen bg-neutral-50">
+        <GuestBanner />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto lg:pl-0 pt-16 lg:pt-0">
+            <div className="p-6">{children}</div>
+          </main>
+        </div>
       </div>
     </AuthGuard>
   );
