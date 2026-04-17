@@ -83,6 +83,38 @@ export async function getGastosByDateRange(
   }
 }
 
+export async function getGastosByCategoria(
+  categoriaId: string
+): Promise<ActionResult<GastoConCategoria[]>> {
+  try {
+    const { user, error: authError } = await getAuthenticatedUser();
+    if (!user) {
+      return createErrorResult(authError);
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("gastos")
+      .select(
+        `
+        *,
+        categoria:categorias_gasto(*)
+      `
+      )
+      .eq("user_id", user.id)
+      .eq("categoria_id", categoriaId)
+      .order("fecha", { ascending: false });
+
+    if (error) {
+      return createErrorResult(error.message);
+    }
+
+    return createSuccessResult((data as GastoConCategoria[]) || []);
+  } catch {
+    return createErrorResult("Error al obtener los gastos");
+  }
+}
+
 export async function getGasto(
   id: string
 ): Promise<ActionResult<GastoConCategoria>> {

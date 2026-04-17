@@ -134,6 +134,8 @@ export async function getDashboardStats(
       return createErrorResult(lastInvoicesResult.error.message);
     if (lastExpensesResult.error)
       return createErrorResult(lastExpensesResult.error.message);
+    if (activeClientsResult.error)
+      return createErrorResult(activeClientsResult.error.message);
 
     const paidInvoices = paidResult.data;
     const unpaidInvoices = unpaidResult.data;
@@ -269,6 +271,18 @@ export async function getMonthlyTotals(
         ]),
       ),
     );
+
+    for (const [pagadasResult, enviadasResult, gastosResult] of allMonthResults) {
+      if (pagadasResult.error) {
+        return createErrorResult(pagadasResult.error.message);
+      }
+      if (enviadasResult.error) {
+        return createErrorResult(enviadasResult.error.message);
+      }
+      if (gastosResult.error) {
+        return createErrorResult(gastosResult.error.message);
+      }
+    }
 
     const results: MonthlyTotal[] = monthRanges.map(({ year, month }, i) => {
       const [pagadasResult, enviadasResult, gastosResult] = allMonthResults[i];

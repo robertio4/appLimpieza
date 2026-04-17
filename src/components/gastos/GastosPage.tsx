@@ -16,12 +16,14 @@ import { CategoriaModal } from "@/components/gastos/categoria-modal";
 import {
   getGastos,
   getGastosByDateRange,
+  getGastosByCategoria,
   deleteGasto,
 } from "@/lib/actions/gastos";
 import {
   getCategorias,
   initializeDefaultCategorias,
 } from "@/lib/actions/categorias";
+import type { ActionResult } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CategoriaGasto, GastoConCategoria } from "@/types/database";
 import { Plus, Settings, Pencil, Trash2, Filter, X } from "lucide-react";
@@ -56,7 +58,7 @@ export function GastosPage() {
     setError(null);
 
     try {
-      let result;
+      let result: ActionResult<GastoConCategoria[]>;
       const categoriaFilter = filterCategoria && filterCategoria !== "all" ? filterCategoria : undefined;
 
       if (filterStartDate && filterEndDate) {
@@ -66,16 +68,7 @@ export function GastosPage() {
           categoriaFilter
         );
       } else if (categoriaFilter) {
-        // If only category filter, use date range with wide dates
-        const startOfYear = new Date();
-        startOfYear.setMonth(0, 1);
-        const endOfYear = new Date();
-        endOfYear.setMonth(11, 31);
-        result = await getGastosByDateRange(
-          startOfYear.toISOString().split("T")[0],
-          endOfYear.toISOString().split("T")[0],
-          categoriaFilter
-        );
+        result = await getGastosByCategoria(categoriaFilter);
       } else {
         result = await getGastos();
       }

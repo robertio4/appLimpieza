@@ -130,22 +130,11 @@ import JSZip from "jszip";
 const JSZip = (await import("jszip")).default;
 ```
 
-#### 6. getAvailableMonths\* — SQL con DISTINCT
+#### 6. getAvailableMonths\* — SQL con DISTINCT (planificado)
 
-**Archivo:** `supabase/migrations/004_performance_improvements.sql`
-
-Función SQL que usa `DISTINCT` en lugar de traer todas las filas a JS:
-
-```sql
-CREATE OR REPLACE FUNCTION get_available_months_facturas(p_user_id UUID)
-RETURNS TABLE(year_month TEXT) AS $$
-  SELECT DISTINCT TO_CHAR(fecha, 'YYYY-MM') as year_month
-  FROM facturas WHERE user_id = p_user_id ORDER BY 1 DESC;
-$$ LANGUAGE sql SECURITY DEFINER;
-```
-
-> **Aplicar:** Ejecutar `supabase/migrations/004_performance_improvements.sql` en el SQL Editor de Supabase.
-> Hasta aplicar la migración, el código funciona igual que antes (las funciones TS hacen el filtro en JS).
+No se incluye una nueva migración en este PR para esta optimización SQL.
+El comportamiento actual sigue funcionando con filtrado en TypeScript.
+Si se implementa después, se añadirá una migración dedicada en `supabase/migrations/`.
 
 #### 7. Metadata por página
 

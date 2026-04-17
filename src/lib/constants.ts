@@ -1,7 +1,7 @@
 /**
  * Company data configuration for invoices.
- * Values are read from NEXT_PUBLIC_COMPANY_* environment variables so that
- * sensitive data (NIF, IBAN) is never stored in the git repository.
+ * Values are read from NEXT_PUBLIC_COMPANY_* environment variables to avoid
+ * hardcoding company data directly in the repository.
  *
  * Required .env.local / production env vars:
  *   NEXT_PUBLIC_COMPANY_NOMBRE

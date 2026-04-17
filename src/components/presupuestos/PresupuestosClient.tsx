@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -70,12 +70,8 @@ import {
 // --------------------------------------------------------------------------
 
 function getInitialFilterYear(availableMonths: string[]): string {
-  if (availableMonths.length === 0) return new Date().getFullYear().toString();
-  const years = Array.from(
-    new Set(availableMonths.map((ym) => ym.split("-")[0])),
-  ).sort((a, b) => Number(b) - Number(a));
-  const currentYear = new Date().getFullYear().toString();
-  return years.includes(currentYear) ? currentYear : years[0];
+  if (availableMonths.length === 0) return "all";
+  return "all";
 }
 
 // --------------------------------------------------------------------------
@@ -119,6 +115,7 @@ export function PresupuestosClient({
   const [filterQuarter, setFilterQuarter] = useState("1");
   const [filterEstado, setFilterEstado] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
+  const didSkipInitialFetch = useRef(false);
 
   // --------------------------------------------------------------------------
   // Derived state
@@ -195,6 +192,12 @@ export function PresupuestosClient({
     setFilterMonth("all");
   }, [filterYear]);
 
+  useEffect(() => {
+    if (filterYear !== "all" && !availableYears.includes(filterYear)) {
+      setFilterYear("all");
+    }
+  }, [availableYears, filterYear]);
+
   // Sync available months from server after mount
   useEffect(() => {
     getAvailableMonthsPresupuestos().then((result) => {
@@ -240,6 +243,10 @@ export function PresupuestosClient({
   }, [filterStartDate, filterEndDate, filterEstado, filterCliente]);
 
   useEffect(() => {
+    if (!didSkipInitialFetch.current) {
+      didSkipInitialFetch.current = true;
+      return;
+    }
     loadPresupuestos();
   }, [loadPresupuestos]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -78,11 +78,7 @@ import {
 
 function getInitialFilterYear(availableMonths: string[]): string {
   if (availableMonths.length === 0) return "all";
-  const years = Array.from(
-    new Set(availableMonths.map((ym) => ym.split("-")[0])),
-  ).sort((a, b) => Number(b) - Number(a));
-  const currentYear = new Date().getFullYear().toString();
-  return years.includes(currentYear) ? currentYear : years[0];
+  return "all";
 }
 
 // --------------------------------------------------------------------------
@@ -157,6 +153,7 @@ export function FacturasClient({
   const [filterQuarter, setFilterQuarter] = useState("1");
   const [filterEstado, setFilterEstado] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
+  const didSkipInitialFetch = useRef(false);
 
   // --------------------------------------------------------------------------
   // Derived state
@@ -335,6 +332,10 @@ export function FacturasClient({
   }, [filterStartDate, filterEndDate, filterEstado, filterCliente]);
 
   useEffect(() => {
+    if (!didSkipInitialFetch.current) {
+      didSkipInitialFetch.current = true;
+      return;
+    }
     loadFacturas();
   }, [loadFacturas]);
 
