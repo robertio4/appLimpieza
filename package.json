@@ -36,15 +36,18 @@
     "react-dom": "^18",
     "react-hook-form": "^7.71.1",
     "recharts": "^3.7.0",
+    "resend": "^6.12.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "ua-parser-js": "^2.0.9",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/ua-parser-js": "^0.7.39",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",

@@ -552,6 +552,60 @@ export interface Database {
           }
         ];
       };
+      guest_login_events: {
+        Row: {
+          id: string;
+          created_at: string;
+          success: boolean;
+          ip_address: string | null;
+          country: string | null;
+          country_code: string | null;
+          city: string | null;
+          region: string | null;
+          browser: string | null;
+          browser_ver: string | null;
+          os: string | null;
+          device_type: string | null;
+          language: string | null;
+          user_agent: string | null;
+          error_msg: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          success: boolean;
+          ip_address?: string | null;
+          country?: string | null;
+          country_code?: string | null;
+          city?: string | null;
+          region?: string | null;
+          browser?: string | null;
+          browser_ver?: string | null;
+          os?: string | null;
+          device_type?: string | null;
+          language?: string | null;
+          user_agent?: string | null;
+          error_msg?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          success?: boolean;
+          ip_address?: string | null;
+          country?: string | null;
+          country_code?: string | null;
+          city?: string | null;
+          region?: string | null;
+          browser?: string | null;
+          browser_ver?: string | null;
+          os?: string | null;
+          device_type?: string | null;
+          language?: string | null;
+          user_agent?: string | null;
+          error_msg?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
