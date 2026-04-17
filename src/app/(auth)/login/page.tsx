@@ -63,14 +63,18 @@ export default function LoginPage() {
   const handleGuestLogin = async () => {
     setGuestError(null);
     setIsGuestLoading(true);
+
     try {
       const result = await signInAsGuest();
-      if (result?.error) {
+      if (result.error) {
         setGuestError(result.error);
-        setIsGuestLoading(false);
+        return;
       }
+
+      navigate("/dashboard");
     } catch {
       setGuestError("Error al iniciar sesión como invitado.");
+    } finally {
       setIsGuestLoading(false);
     }
   };

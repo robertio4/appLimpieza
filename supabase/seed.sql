@@ -251,22 +251,22 @@ BEGIN
 
     INSERT INTO categorias_gasto (id, user_id, nombre, color)
     VALUES
-        (uuid_generate_v4(), guest_user_id, 'Productos de Limpieza', '#3B82F6')
+        (gen_random_uuid(), guest_user_id, 'Productos de Limpieza', '#3B82F6')
     RETURNING id INTO cat_limpieza_id;
 
     INSERT INTO categorias_gasto (id, user_id, nombre, color)
     VALUES
-        (uuid_generate_v4(), guest_user_id, 'Transporte', '#10B981')
+        (gen_random_uuid(), guest_user_id, 'Transporte', '#10B981')
     RETURNING id INTO cat_transporte_id;
 
     INSERT INTO categorias_gasto (id, user_id, nombre, color)
     VALUES
-        (uuid_generate_v4(), guest_user_id, 'Suministros de Oficina', '#F59E0B')
+        (gen_random_uuid(), guest_user_id, 'Suministros de Oficina', '#F59E0B')
     RETURNING id INTO cat_suministros_id;
 
     INSERT INTO categorias_gasto (id, user_id, nombre, color)
     VALUES
-        (uuid_generate_v4(), guest_user_id, 'Marketing y Publicidad', '#EF4444')
+        (gen_random_uuid(), guest_user_id, 'Marketing y Publicidad', '#EF4444')
     RETURNING id INTO cat_marketing_id;
 
     RAISE NOTICE 'Created 4 expense categories for guest';
@@ -277,7 +277,7 @@ BEGIN
 
     INSERT INTO clientes (id, user_id, nombre, email, telefono, direccion, nif, notas)
     VALUES (
-        uuid_generate_v4(),
+        gen_random_uuid(),
         guest_user_id,
         'Oficinas Central Madrid S.L.',
         'contacto@centralesmadrid.es',
@@ -290,7 +290,7 @@ BEGIN
 
     INSERT INTO clientes (id, user_id, nombre, email, telefono, direccion, nif, notas)
     VALUES (
-        uuid_generate_v4(),
+        gen_random_uuid(),
         guest_user_id,
         'Comunidad de Propietarios Los Robles',
         'administrador@losrobles.com',
@@ -303,7 +303,7 @@ BEGIN
 
     INSERT INTO clientes (id, user_id, nombre, email, telefono, direccion, nif, notas)
     VALUES (
-        uuid_generate_v4(),
+        gen_random_uuid(),
         guest_user_id,
         'Restaurante El Buen Sabor',
         'gerencia@elbuensabor.es',
@@ -323,7 +323,7 @@ BEGIN
     -- Invoice 1: For client 1
     INSERT INTO facturas (id, user_id, numero, cliente_id, fecha, fecha_vencimiento, subtotal, iva, total, estado, notas)
     VALUES (
-        uuid_generate_v4(),
+        gen_random_uuid(),
         guest_user_id,
         generate_invoice_number(guest_user_id),
         cliente1_id,
@@ -347,7 +347,7 @@ BEGIN
     -- Invoice 2: For client 3
     INSERT INTO facturas (id, user_id, numero, cliente_id, fecha, fecha_vencimiento, subtotal, iva, total, estado, notas)
     VALUES (
-        uuid_generate_v4(),
+        gen_random_uuid(),
         guest_user_id,
         generate_invoice_number(guest_user_id),
         cliente3_id,

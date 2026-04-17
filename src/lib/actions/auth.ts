@@ -1,10 +1,10 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { GUEST_USER_EMAIL } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
-export async function signInAsGuest(): Promise<{ error: string } | never> {
-  const email = process.env.GUEST_USER_EMAIL;
+export async function signInAsGuest(): Promise<{ error?: string }> {
+  const email = GUEST_USER_EMAIL;
   const password = process.env.GUEST_USER_PASSWORD;
 
   if (!email || !password) {
@@ -17,6 +17,5 @@ export async function signInAsGuest(): Promise<{ error: string } | never> {
   if (error) {
     return { error: "No se pudo iniciar sesión como invitado. Inténtalo de nuevo." };
   }
-
-  redirect("/dashboard");
+  return {};
 }
