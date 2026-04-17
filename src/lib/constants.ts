@@ -94,3 +94,8 @@ export const QUARTER_NAMES = [
   "Q3 (Jul-Sep)",
   "Q4 (Oct-Dic)",
 ] as const;
+
+/**
+ * Guest user email for demo access
+ */
+export const GUEST_USER_EMAIL = process.env.NEXT_PUBLIC_GUEST_USER_EMAIL ?? "";
