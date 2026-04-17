@@ -1,13 +1,23 @@
 /**
- * Company data configuration for invoices
+ * Company data configuration for invoices.
+ * Values are read from NEXT_PUBLIC_COMPANY_* environment variables to avoid
+ * hardcoding company data directly in the repository.
+ *
+ * Required .env.local / production env vars:
+ *   NEXT_PUBLIC_COMPANY_NOMBRE
+ *   NEXT_PUBLIC_COMPANY_DIRECCION
+ *   NEXT_PUBLIC_COMPANY_NIF
+ *   NEXT_PUBLIC_COMPANY_TELEFONO
+ *   NEXT_PUBLIC_COMPANY_EMAIL
+ *   NEXT_PUBLIC_COMPANY_IBAN
  */
 export const DATOS_EMPRESA = {
-  nombre: "Limpiezas Roferlim",
-  direccion: "Rua da Fraga, 2 - 1º Dcha, 27003 Lugo",
-  nif: "33861402C",
-  telefono: "600 418 963",
-  email: "roferlimpiezas@gmail.com",
-  iban: "ES67 3070 0020 2315 6082 1819",
+  nombre: process.env.NEXT_PUBLIC_COMPANY_NOMBRE ?? "Mi Empresa",
+  direccion: process.env.NEXT_PUBLIC_COMPANY_DIRECCION ?? "",
+  nif: process.env.NEXT_PUBLIC_COMPANY_NIF ?? "",
+  telefono: process.env.NEXT_PUBLIC_COMPANY_TELEFONO ?? "",
+  email: process.env.NEXT_PUBLIC_COMPANY_EMAIL ?? "",
+  iban: process.env.NEXT_PUBLIC_COMPANY_IBAN ?? "",
 };
 
 /**

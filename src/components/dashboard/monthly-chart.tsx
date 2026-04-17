@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   ComposedChart,
   Area,
@@ -18,82 +19,92 @@ interface MonthlyChartProps {
   data: MonthlyTotal[];
 }
 
-export function MonthlyChart({ data }: MonthlyChartProps) {
-  const formatCurrencyCompact = (value: number) => {
-    return new Intl.NumberFormat("es-ES", {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+// --------------------------------------------------------------------------
+// Helpers defined outside the component to prevent recreation on every render
+// --------------------------------------------------------------------------
 
-  interface TooltipPayload {
-    dataKey: string;
-    value: number;
-  }
+const formatCurrencyCompact = (value: number) =>
+  new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    label?: string;
-  }
+interface TooltipPayload {
+  dataKey: string;
+  value: number;
+}
 
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const ingresos = payload.find((p) => p.dataKey === "ingresos");
-      const pendiente = payload.find((p) => p.dataKey === "pendiente");
-      const gastos = payload.find((p) => p.dataKey === "gastos");
-      const balance = (ingresos?.value || 0) - (gastos?.value || 0);
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
 
-      return (
-        <div className="bg-white border border-neutral-200 rounded-lg p-3 shadow-lg">
-          <p className="font-semibold text-neutral-900 mb-2">{label}</p>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-sm flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                Ingresos:
-              </span>
-              <span className="text-sm font-semibold text-emerald-600">
-                {formatCurrency(ingresos?.value || 0)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-sm flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                Pendiente:
-              </span>
-              <span className="text-sm font-semibold text-blue-600">
-                {formatCurrency(pendiente?.value || 0)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-sm flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                Gastos:
-              </span>
-              <span className="text-sm font-semibold text-red-600">
-                {formatCurrency(gastos?.value || 0)}
-              </span>
-            </div>
-            <div className="border-t border-neutral-200 mt-2 pt-2">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm font-medium">Balance:</span>
-                <span
-                  className={`text-sm font-bold ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}
-                >
-                  {formatCurrency(balance)}
-                </span>
-              </div>
-            </div>
+const CustomTooltip = memo(function CustomTooltip({
+  active,
+  payload,
+  label,
+}: CustomTooltipProps) {
+  if (!active || !payload || !payload.length) return null;
+
+  const ingresos = payload.find((p) => p.dataKey === "ingresos");
+  const pendiente = payload.find((p) => p.dataKey === "pendiente");
+  const gastos = payload.find((p) => p.dataKey === "gastos");
+  const balance = (ingresos?.value || 0) - (gastos?.value || 0);
+
+  return (
+    <div className="bg-white border border-neutral-200 rounded-lg p-3 shadow-lg">
+      <p className="font-semibold text-neutral-900 mb-2">{label}</p>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+            Ingresos:
+          </span>
+          <span className="text-sm font-semibold text-emerald-600">
+            {formatCurrency(ingresos?.value || 0)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+            Pendiente:
+          </span>
+          <span className="text-sm font-semibold text-blue-600">
+            {formatCurrency(pendiente?.value || 0)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-red-500"></span>
+            Gastos:
+          </span>
+          <span className="text-sm font-semibold text-red-600">
+            {formatCurrency(gastos?.value || 0)}
+          </span>
+        </div>
+        <div className="border-t border-neutral-200 mt-2 pt-2">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-medium">Balance:</span>
+            <span
+              className={`text-sm font-bold ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}
+            >
+              {formatCurrency(balance)}
+            </span>
           </div>
         </div>
-      );
-    }
-    return null;
-  };
+      </div>
+    </div>
+  );
+});
 
+// --------------------------------------------------------------------------
+// Main chart component
+// --------------------------------------------------------------------------
+
+export function MonthlyChart({ data }: MonthlyChartProps) {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <ComposedChart
