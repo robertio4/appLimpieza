@@ -7,22 +7,32 @@
 -- =============================================================================
 
 CREATE TABLE guest_login_events (
-  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at   TIMESTAMPTZ DEFAULT now() NOT NULL,
-  success      BOOLEAN NOT NULL,
-  ip_address   TEXT,
-  country      TEXT,
-  country_code TEXT,
-  city         TEXT,
-  region       TEXT,
-  browser      TEXT,
-  browser_ver  TEXT,
-  os           TEXT,
-  device_type  TEXT,
-  language     TEXT,
-  user_agent   TEXT,
-  error_msg    TEXT
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at      TIMESTAMPTZ DEFAULT now() NOT NULL,
+  success         BOOLEAN NOT NULL,
+  -- Red
+  ip_address      TEXT,
+  -- Geolocalización (ipapi.co)
+  country         TEXT,
+  country_code    TEXT,
+  city            TEXT,
+  region          TEXT,
+  region_code     TEXT,
+  postal          TEXT,
+  latitude        DOUBLE PRECISION,
+  longitude       DOUBLE PRECISION,
+  timezone        TEXT,
+  org             TEXT,
+  in_eu           BOOLEAN,
+  -- Dispositivo
+  browser         TEXT,
+  browser_ver     TEXT,
+  os              TEXT,
+  device_type     TEXT,
+  language        TEXT,
+  user_agent      TEXT,
+  error_msg       TEXT
 );
 
 CREATE INDEX idx_guest_login_events_user_id ON guest_login_events(user_id);
