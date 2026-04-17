@@ -73,15 +73,6 @@ import {
 } from "lucide-react";
 
 // --------------------------------------------------------------------------
-// Helpers
-// --------------------------------------------------------------------------
-
-function getInitialFilterYear(availableMonths: string[]): string {
-  if (availableMonths.length === 0) return "all";
-  return "all";
-}
-
-// --------------------------------------------------------------------------
 // Props
 // --------------------------------------------------------------------------
 
@@ -143,9 +134,7 @@ export function FacturasClient({
   const [availableMonths, setAvailableMonths] = useState<string[]>(
     initialAvailableMonths,
   );
-  const [filterYear, setFilterYear] = useState(() =>
-    getInitialFilterYear(initialAvailableMonths),
-  );
+  const [filterYear, setFilterYear] = useState("all");
   const [filterPeriodType, setFilterPeriodType] = useState<
     "month" | "quarter" | "year"
   >("month");

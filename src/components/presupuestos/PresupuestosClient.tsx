@@ -66,15 +66,6 @@ import {
 } from "lucide-react";
 
 // --------------------------------------------------------------------------
-// Helpers
-// --------------------------------------------------------------------------
-
-function getInitialFilterYear(availableMonths: string[]): string {
-  if (availableMonths.length === 0) return "all";
-  return "all";
-}
-
-// --------------------------------------------------------------------------
 // Props
 // --------------------------------------------------------------------------
 
@@ -105,9 +96,7 @@ export function PresupuestosClient({
   const [availableMonths, setAvailableMonths] = useState<string[]>(
     initialAvailableMonths,
   );
-  const [filterYear, setFilterYear] = useState(() =>
-    getInitialFilterYear(initialAvailableMonths),
-  );
+  const [filterYear, setFilterYear] = useState("all");
   const [filterPeriodType, setFilterPeriodType] = useState<
     "month" | "quarter" | "year"
   >("month");
@@ -191,12 +180,6 @@ export function PresupuestosClient({
   useEffect(() => {
     setFilterMonth("all");
   }, [filterYear]);
-
-  useEffect(() => {
-    if (filterYear !== "all" && !availableYears.includes(filterYear)) {
-      setFilterYear("all");
-    }
-  }, [availableYears, filterYear]);
 
   // Sync available months from server after mount
   useEffect(() => {
