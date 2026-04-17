@@ -555,6 +555,7 @@ export interface Database {
       guest_login_events: {
         Row: {
           id: string;
+          user_id: string;
           created_at: string;
           success: boolean;
           ip_address: string | null;
@@ -572,6 +573,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          user_id: string;
           created_at?: string;
           success: boolean;
           ip_address?: string | null;
@@ -589,6 +591,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          user_id?: string;
           created_at?: string;
           success?: boolean;
           ip_address?: string | null;
@@ -604,7 +607,15 @@ export interface Database {
           user_agent?: string | null;
           error_msg?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'guest_login_events_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
       };
     };
     Views: {
