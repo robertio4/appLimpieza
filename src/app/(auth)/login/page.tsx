@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { signInAsGuest } from "@/lib/actions/auth";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -36,6 +37,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
 
   const {
     register,
@@ -54,6 +57,25 @@ export default function LoginPage() {
     } else {
       router.push(url);
       router.refresh();
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setGuestError(null);
+    setIsGuestLoading(true);
+
+    try {
+      const result = await signInAsGuest();
+      if (result.error) {
+        setGuestError(result.error);
+        return;
+      }
+
+      navigate("/dashboard");
+    } catch {
+      setGuestError("Error al iniciar sesión como invitado.");
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -164,6 +186,40 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-neutral-200" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-neutral-50 px-2 text-neutral-500">
+            o continúa sin cuenta
+          </span>
+        </div>
+      </div>
+
+      {guestError && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+          {guestError}
+        </div>
+      )}
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={handleGuestLogin}
+        disabled={isGuestLoading || isLoading}
+      >
+        {isGuestLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Entrando...
+          </>
+        ) : (
+          "Entrar como invitado"
+        )}
+      </Button>
 
       <p className="text-center text-sm text-neutral-600">
         ¿No tienes cuenta?{" "}

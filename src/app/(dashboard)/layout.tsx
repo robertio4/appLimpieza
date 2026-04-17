@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { AuthGuard } from "@/components/layout/auth-guard";
+import { GuestBanner } from "@/components/layout/guest-banner";
 
 export default function DashboardLayout({
   children,
@@ -8,6 +9,7 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
+      <GuestBanner />
       <div className="flex min-h-screen bg-neutral-50">
         <Sidebar />
         <main className="flex-1 lg:pl-0 pt-16 lg:pt-0">

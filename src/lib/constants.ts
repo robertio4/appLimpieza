@@ -104,3 +104,15 @@ export const QUARTER_NAMES = [
   "Q3 (Jul-Sep)",
   "Q4 (Oct-Dic)",
 ] as const;
+
+/**
+ * Guest user email for demo access.
+ *
+ * NEXT_PUBLIC_GUEST_USER_EMAIL is the canonical env var so the same value
+ * can be used consistently by both client-visible and server-side code.
+ * Falls back to GUEST_USER_EMAIL for backwards compatibility.
+ */
+export const GUEST_USER_EMAIL =
+  process.env.NEXT_PUBLIC_GUEST_USER_EMAIL ??
+  process.env.GUEST_USER_EMAIL ??
+  "";
